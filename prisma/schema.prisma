@@ -1,0 +1,136 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+// DÉFINIR LES ENUMS AVANT DE LES UTILISER
+enum Role {
+  ADMIN
+  COMMERCANT
+  EMPLOYE
+}
+
+enum DureeAbonnement {
+  UN_MOIS
+  TROIS_MOIS
+  SIX_MOIS
+  UN_AN
+}
+
+enum StatutAbonnement {
+  ACTIF
+  EXPIRE
+  ANNULE
+}
+
+enum TypeTransaction {
+  VENTE
+  VERSEMENT
+  DEPENSE
+  VIREMENT_BANCAIRE
+  RETRAIT
+}
+
+model Utilisateur {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  motDePasse      String
+  nom             String
+  prenom          String?
+  telephone       String?
+  emailVerifie    Boolean   @default(false)
+  role            Role      @default(COMMERCANT)
+  tokenVerification String? @unique
+  tokenReinitialisation String?
+  dateExpirationToken   DateTime?
+  dateCreation    DateTime  @default(now())
+  dateMiseAJour   DateTime  @updatedAt
+
+  boutiques       Boutique[]
+  boutiqueGeree   Boutique?  @relation("Gerant")
+  ventes          Vente[]
+  abonnements     Abonnement[]
+  transactions    Transaction[] @relation("TransactionsVerifiees")
+}
+
+model Boutique {
+  id              String    @id @default(cuid())
+  nom             String
+  commercantId    String
+  gerantId        String?   @unique
+  solde           Float     @default(0)
+  dateCreation    DateTime  @default(now())
+  dateMiseAJour   DateTime  @updatedAt
+
+  commercant      Utilisateur @relation(fields: [commercantId], references: [id])
+  gerant          Utilisateur? @relation("Gerant", fields: [gerantId], references: [id])
+  ventes          Vente[]
+  transactions    Transaction[]
+  abonnements     Abonnement[]
+  employes        Employe[]
+}
+
+model Employe {
+  id              String    @id @default(cuid())
+  nom             String
+  prenom          String?
+  telephone       String
+  code            String    @unique
+  boutiqueId      String?
+  dateCreation    DateTime  @default(now())
+  dateMiseAJour   DateTime  @updatedAt
+
+  boutique        Boutique?  @relation(fields: [boutiqueId], references: [id])
+}
+
+model Vente {
+  id              String    @id @default(cuid())
+  montant         Float
+  description     String?
+  boutiqueId      String
+  enregistreParId String
+  dateVente       DateTime  @default(now())
+  dateCreation    DateTime  @default(now())
+
+  boutique        Boutique  @relation(fields: [boutiqueId], references: [id])
+  enregistrePar   Utilisateur @relation(fields: [enregistreParId], references: [id])
+}
+
+model Transaction {
+  id              String    @id @default(cuid())
+  type            TypeTransaction
+  montant         Float
+  description     String?
+  reference       String?
+  boutiqueId      String
+  verifiee        Boolean   @default(false)
+  verifieeParId   String?
+  dateTransaction DateTime  @default(now())
+  dateCreation    DateTime  @default(now())
+
+  boutique        Boutique  @relation(fields: [boutiqueId], references: [id])
+  verifieePar     Utilisateur? @relation("TransactionsVerifiees", fields: [verifieeParId], references: [id])
+}
+
+model Abonnement {
+  id              String    @id @default(cuid())
+  boutiqueId      String
+  commercantId    String
+  duree           DureeAbonnement
+  statut          StatutAbonnement @default(ACTIF)
+  dateDebut       DateTime  @default(now())
+  dateFin         DateTime
+  montant         Float
+  dateCreation    DateTime  @default(now())
+
+  boutique        Boutique  @relation(fields: [boutiqueId], references: [id])
+  commercant      Utilisateur @relation(fields: [commercantId], references: [id])
+}
