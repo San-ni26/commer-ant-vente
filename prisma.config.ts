@@ -1,7 +1,12 @@
-// prisma.config.ts
-import { defineConfig } from 'prisma/config'
+import "dotenv/config";
+import { defineConfig, env } from "prisma/config";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
-  // Pas besoin de spécifier le output, utilisez le défaut
-})
+  migrations: {
+    path: "prisma/migrations",
+  },
+  datasource: {
+    url: env("DATABASE_URL"),
+  },
+});

@@ -52,7 +52,7 @@ export function TransactionList({ shopId }: { shopId: string }) {
 
   const getStatusBadge = (type: string, verified: boolean) => {
     if (!verified) return <Badge variant="secondary">En attente</Badge>
-    
+
     switch (type) {
       case "VENTE":
         return <Badge variant="default">Vente</Badge>
@@ -87,7 +87,7 @@ export function TransactionList({ shopId }: { shopId: string }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ transactionId, verified: true })
       })
-      
+
       if (reponse.ok) {
         fetchTransactions()
       }
@@ -132,12 +132,12 @@ export function TransactionList({ shopId }: { shopId: string }) {
               <TableCell>{transaction.description || "-"}</TableCell>
               <TableCell>{transaction.reference || "-"}</TableCell>
               <TableCell className="text-right">
-                <span className={transaction.type === "VENTE" || transaction.type === "VERSEMENT" 
-                  ? "text-green-600" 
+                <span className={transaction.type === "VENTE" || transaction.type === "VERSEMENT"
+                  ? "text-green-600"
                   : "text-red-600"
                 }>
                   {transaction.type === "DEPENSE" || transaction.type === "RETRAIT" ? "-" : "+"}
-                  {transaction.amount.toFixed(2)} €
+                  {transaction.amount.toFixed(2)} FCFA
                 </span>
               </TableCell>
               <TableCell>
@@ -145,8 +145,8 @@ export function TransactionList({ shopId }: { shopId: string }) {
               </TableCell>
               <TableCell>
                 {!transaction.verified && (
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
                     onClick={() => handleVerify(transaction.id)}
                   >

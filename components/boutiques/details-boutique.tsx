@@ -85,7 +85,7 @@ export function DetailsBoutique({ boutiqueId }: { boutiqueId: string }) {
           </div>
         </div>
         <Badge variant={boutique.solde >= 0 ? "default" : "destructive"} className="text-lg px-4 py-2">
-          Solde: {boutique.solde.toFixed(2)} €
+          Solde: {boutique.solde.toFixed(2)} FCFA
         </Badge>
       </div>
 
@@ -134,7 +134,7 @@ export function DetailsBoutique({ boutiqueId }: { boutiqueId: string }) {
             <Store className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{boutique.solde.toFixed(2)} €</div>
+            <div className="text-2xl font-bold">{boutique.solde.toFixed(2)} FCFA</div>
           </CardContent>
         </Card>
       </div>

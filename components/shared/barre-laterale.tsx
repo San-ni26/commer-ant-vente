@@ -1,19 +1,34 @@
-// src/components/shared/barre-laterale.tsx - CORRIGÉ
-import Link from "next/link"
-import { 
-  LayoutDashboard, 
-  Store, 
-  Users, 
-  ShoppingCart, 
-  BarChart3, 
-  CreditCard,
-} from "lucide-react"
-import { auth } from "@/lib/auth"
-import { cn } from "@/lib/utils"
+// src/components/shared/barre-laterale.tsx
+"use client"
 
-export async function BarreLaterale() {
-  const session = await auth()
-  const role = (session?.user as any)?.role as string
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import {
+  LayoutDashboard,
+  Store,
+  Users,
+  ShoppingCart,
+  BarChart3,
+  CreditCard,
+  X,
+  LogOut,
+  ChevronRight
+} from "lucide-react"
+import { cn } from "@/lib/utils"
+import { signOut } from "next-auth/react"
+import { Button } from "@/components/ui/button"
+
+interface BarreLateraleProps {
+  onClose?: () => void
+  user?: {
+    name?: string | null
+    email?: string | null
+    role?: string
+  }
+}
+
+export function BarreLaterale({ onClose, user }: BarreLateraleProps) {
+  const pathname = usePathname()
 
   const navigation = {
     ADMIN: [
@@ -34,39 +49,78 @@ export async function BarreLaterale() {
     ],
   }
 
+  const role = user?.role
   const liens = role ? navigation[role as keyof typeof navigation] || [] : []
 
   return (
-    <aside className="w-64 bg-gray-900 text-white min-h-screen p-4">
-      <div className="mb-8">
-        <h1 className="text-xl font-bold">Commerce Vente</h1>
-        <p className="text-sm text-gray-400">Gestion commerciale</p>
-      </div>
-      
-      <nav className="space-y-2">
-        {liens.map((lien) => (
-          <Link
-            key={lien.href}
-            href={lien.href}
-            className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
-              "hover:bg-gray-800 text-gray-300 hover:text-white"
-            )}
-          >
-            <lien.icone className="h-5 w-5" />
-            <span>{lien.nom}</span>
-          </Link>
-        ))}
-      </nav>
-
-      <div className="absolute bottom-4 w-56">
-        <div className="border-t border-gray-700 pt-4">
-          <div className="text-sm text-gray-400">
-            <p>{session?.user?.name}</p>
-            <p className="text-xs">{session?.user?.email}</p>
+    <div className="h-full bg-gradient-to-b from-gray-900 to-gray-800 text-white flex flex-col">
+      {/* En-tête sidebar */}
+      <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="bg-blue-500 p-2 rounded-lg">
+            <Store className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="font-bold text-sm sm:text-base">Commerce Vente</h1>
+            <p className="text-[10px] sm:text-xs text-gray-400">Gestion commerciale</p>
           </div>
         </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden text-white hover:bg-gray-700"
+          onClick={onClose}
+        >
+          <X className="h-5 w-5" />
+        </Button>
       </div>
-    </aside>
+
+      {/* Navigation */}
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        {liens.map((lien) => {
+          const estActif = pathname === lien.href || pathname.startsWith(lien.href + "/")
+
+          return (
+            <Link
+              key={lien.href}
+              href={lien.href}
+              onClick={onClose}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm sm:text-base",
+                "touch-manipulation",
+                estActif
+                  ? "bg-blue-600 text-white font-medium"
+                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
+              )}
+            >
+              <lien.icone className="h-5 w-5 flex-shrink-0" />
+              <span className="flex-1">{lien.nom}</span>
+              {estActif && <ChevronRight className="h-4 w-4" />}
+            </Link>
+          )
+        })}
+      </nav>
+
+      {/* Profil utilisateur */}
+      <div className="p-4 border-t border-gray-700">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-sm font-bold">
+            {user?.name?.charAt(0) || "U"}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{user?.name || "Utilisateur"}</p>
+            <p className="text-xs text-gray-400 truncate">{user?.email || ""}</p>
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          className="w-full text-gray-400 hover:text-white hover:bg-gray-700 justify-start text-sm"
+          onClick={() => signOut({ callbackUrl: "/connexion" })}
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Déconnexion
+        </Button>
+      </div>
+    </div>
   )
 }

@@ -1,19 +1,32 @@
-// src/app/(dashboard)/merchant/shops/page.tsx
+// src/app/(dashboard)/commercant/boutiques/page.tsx
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import { ShopList } from "@/components/shops/ShopList"
+import { prisma } from "@/lib/prisma"
+import { GestionBoutiques } from "@/components/boutiques/gestion-boutiques"
 
-export default async function ShopsPage() {
+export default async function PageBoutiques() {
   const session = await auth()
-  
-  if (!session) {
+
+  if (!session?.user) {
     redirect("/connexion")
   }
 
+  const boutiques = await prisma.boutique.findMany({
+    where: { commercantId: session.user.id },
+    include: {
+      _count: { select: { ventes: true, employes: true } },
+      gerant: { select: { nom: true, prenom: true } }
+    },
+    orderBy: { dateCreation: 'desc' }
+  })
+
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-2xl font-bold mb-6">Mes Boutiques</h1>
-      <ShopList />
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold">Mes Boutiques</h1>
+        <p className="text-gray-500 mt-1">Gérez vos boutiques</p>
+      </div>
+      <GestionBoutiques boutiques={boutiques} />
     </div>
   )
 }

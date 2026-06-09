@@ -1,6 +1,5 @@
 // src/components/dashboard/cartes-statistiques.tsx
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { cn } from "@/lib/utils"
 import { LucideIcon } from "lucide-react"
 
 interface CarteStatistiqueProps {
@@ -8,60 +7,33 @@ interface CarteStatistiqueProps {
   valeur: string
   icone: LucideIcon
   description?: string
-  variation?: {
-    valeur: number
-    positif: boolean
-  }
-  className?: string
 }
 
-export function CarteStatistique({ 
-  titre, 
-  valeur, 
+export function CarteStatistique({
+  titre,
+  valeur,
   icone: Icone,
-  description,
-  variation,
-  className 
+  description
 }: CarteStatistiqueProps) {
   return (
-    <Card className={cn("", className)}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+    <Card className="hover:shadow-lg transition-shadow">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-4 lg:p-6 pb-2">
+        <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">
           {titre}
         </CardTitle>
-        <Icone className="h-4 w-4 text-muted-foreground" />
+        <div className="p-1.5 sm:p-2 bg-blue-50 rounded-lg">
+          <Icone className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600" />
+        </div>
       </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{valeur}</div>
+      <CardContent className="p-3 sm:p-4 lg:p-6 pt-0">
+        <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">
+          {valeur}
+        </div>
         {description && (
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
             {description}
           </p>
         )}
-        {variation && (
-          <p className={cn(
-            "text-xs mt-2",
-            variation.positif ? "text-green-600" : "text-red-600"
-          )}>
-            {variation.positif ? "+" : "-"}{Math.abs(variation.valeur)}%
-          </p>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
-// Version avec chargement
-export function CarteStatistiqueChargement() {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
-        <div className="h-4 w-4 bg-gray-200 rounded animate-pulse" />
-      </CardHeader>
-      <CardContent>
-        <div className="h-8 w-32 bg-gray-200 rounded animate-pulse mb-2" />
-        <div className="h-3 w-20 bg-gray-200 rounded animate-pulse" />
       </CardContent>
     </Card>
   )
