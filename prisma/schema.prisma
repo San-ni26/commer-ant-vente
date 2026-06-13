@@ -50,6 +50,7 @@ model Employe {
   prenom        String?
   telephone     String
   code          String    @unique
+  utilisateurId String?   @unique // Lien vers un compte utilisateur
   boutiqueId    String?
   dateCreation  DateTime  @default(now())
   dateMiseAJour DateTime  @updatedAt

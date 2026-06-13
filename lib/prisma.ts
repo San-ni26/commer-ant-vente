@@ -1,19 +1,68 @@
-// src/lib/prisma.ts
+// lib/prisma.ts
 import { PrismaClient } from '../generated/prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
+import { Pool } from 'pg'
 
-const globalForPrisma = globalThis as unknown as {
-    prisma: PrismaClient | undefined
+declare global {
+  // eslint-disable-next-line no-var
+  var _prismaPool: Pool | undefined
+  // eslint-disable-next-line no-var
+  var _prismaClient: PrismaClient | undefined
 }
 
-const createPrismaClient = () => {
-    const adapter = new PrismaPg({
-        connectionString: process.env.DATABASE_URL!,
-    })
-
-    return new PrismaClient({ adapter })
+function createPool() {
+  return new Pool({
+    connectionString: process.env.DATABASE_URL!,
+    // Ferme les connexions inactives AVANT que le pooler (PgBouncer) ne les coupe
+    // pooled.db.prisma.io utilise PgBouncer en mode transactionnel
+    idleTimeoutMillis: 10_000,      // 10 s (PgBouncer coupe après ~30 s par défaut)
+    connectionTimeoutMillis: 10_000, // timeout d'acquisition d'une connexion
+    max: 5,                          // limite les connexions simultanées
+    keepAlive: true,                 // envoie des TCP keep-alives pour éviter ECONNRESET
+    keepAliveInitialDelayMillis: 5_000,
+  })
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient()
+function createPrismaClient(pool: Pool) {
+  const adapter = new PrismaPg(pool)
+  return new PrismaClient({ adapter })
+}
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+// Singleton : réutilise le pool et le client entre les requêtes (hot-reload en dev inclus)
+const pool: Pool = globalThis._prismaPool ?? createPool()
+const prisma: PrismaClient = globalThis._prismaClient ?? createPrismaClient(pool)
+
+if (process.env.NODE_ENV !== 'production') {
+  globalThis._prismaPool = pool
+  globalThis._prismaClient = prisma
+}
+
+export { prisma, pool }
+
+// ─── Retry helper ────────────────────────────────────────────────────────────
+// Réessaie automatiquement les opérations Prisma qui échouent sur une erreur
+// de connexion transitoire (P1017 / ConnectionClosed).
+export async function avecRetry<T>(
+  fn: () => Promise<T>,
+  tentatives = 3,
+  delai = 300,
+): Promise<T> {
+  let dernierreErreur: unknown
+  for (let i = 0; i < tentatives; i++) {
+    try {
+      return await fn()
+    } catch (err: unknown) {
+      const code = (err as { code?: string })?.code
+      if (code === 'P1017' || code === 'P1001') {
+        // Erreur de connexion transitoire → on attend et on réessaie
+        dernierreErreur = err
+        if (i < tentatives - 1) {
+          await new Promise((r) => setTimeout(r, delai * (i + 1)))
+        }
+      } else {
+        throw err
+      }
+    }
+  }
+  throw dernierreErreur
+}

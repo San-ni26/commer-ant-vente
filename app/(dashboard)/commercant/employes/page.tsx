@@ -6,13 +6,17 @@ import { GestionEmployes } from "@/components/employes/gestion-employes"
 
 export default async function PageEmployes() {
   const session = await auth()
-
+  
   if (!session?.user) {
     redirect("/connexion")
   }
 
-  const [employes, boutiques] = await Promise.all([
-    prisma.employe.findMany({
+  // Faire les requêtes séparément (pas de Promise.all qui peut causer des problèmes)
+  let employes: any[] = []
+  let boutiques: any[] = []
+
+  try {
+    employes = await prisma.employe.findMany({
       where: {
         boutique: {
           commercantId: session.user.id
@@ -23,13 +27,22 @@ export default async function PageEmployes() {
           select: { id: true, nom: true }
         }
       },
-      orderBy: { dateCreation: 'desc' }
-    }),
-    prisma.boutique.findMany({
-      where: { commercantId: session.user.id },
-      select: { id: true, nom: true }
+      orderBy: { dateCreation: 'desc' },
+      take: 50
     })
-  ])
+  } catch (e) {
+    console.error("Erreur chargement employés:", e)
+  }
+
+  try {
+    boutiques = await prisma.boutique.findMany({
+      where: { commercantId: session.user.id },
+      select: { id: true, nom: true },
+      take: 50
+    })
+  } catch (e) {
+    console.error("Erreur chargement boutiques:", e)
+  }
 
   return (
     <div className="space-y-6">

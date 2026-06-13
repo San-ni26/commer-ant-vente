@@ -1,6 +1,6 @@
 // src/app/api/boutiques/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { prisma, avecRetry } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 
 export async function GET(
@@ -19,40 +19,42 @@ export async function GET(
 
     const { id } = await context.params
 
-    const boutique = await prisma.boutique.findFirst({
-      where: {
-        id: id,
-        OR: [
-          { commercantId: session.user.id },
-          { gerantId: session.user.id }
-        ]
-      },
-      include: {
-        gerant: {
-          select: {
-            id: true,
-            nom: true,
-            prenom: true,
-            email: true,
-          }
+    const boutique = await avecRetry(() =>
+      prisma.boutique.findFirst({
+        where: {
+          id: id,
+          OR: [
+            { commercantId: session.user.id },
+            { gerantId: session.user.id }
+          ]
         },
-        employes: {
-          select: {
-            id: true,
-            nom: true,
-            prenom: true,
-            telephone: true,
-            code: true,
-          }
-        },
-        _count: {
-          select: {
-            ventes: true,
-            transactions: true,
+        include: {
+          gerant: {
+            select: {
+              id: true,
+              nom: true,
+              prenom: true,
+              email: true,
+            }
+          },
+          employes: {
+            select: {
+              id: true,
+              nom: true,
+              prenom: true,
+              telephone: true,
+              code: true,
+            }
+          },
+          _count: {
+            select: {
+              ventes: true,
+              transactions: true,
+            }
           }
         }
-      }
-    })
+      })
+    )
 
     if (!boutique) {
       return NextResponse.json(
@@ -89,12 +91,14 @@ export async function PUT(
     const corps = await request.json()
 
     // Vérifier que la boutique appartient au commercant
-    const boutique = await prisma.boutique.findFirst({
-      where: {
-        id: id,
-        commercantId: session.user.id
-      }
-    })
+    const boutique = await avecRetry(() =>
+      prisma.boutique.findFirst({
+        where: {
+          id: id,
+          commercantId: session.user.id
+        }
+      })
+    )
 
     if (!boutique) {
       return NextResponse.json(
@@ -103,22 +107,24 @@ export async function PUT(
       )
     }
 
-    const boutiqueMaj = await prisma.boutique.update({
-      where: { id: id },
-      data: {
-        nom: corps.nom,
-        gerantId: corps.gerantId,
-      },
-      include: {
-        gerant: {
-          select: {
-            id: true,
-            nom: true,
-            prenom: true,
+    const boutiqueMaj = await avecRetry(() =>
+      prisma.boutique.update({
+        where: { id: id },
+        data: {
+          nom: corps.nom,
+          gerantId: corps.gerantId,
+        },
+        include: {
+          gerant: {
+            select: {
+              id: true,
+              nom: true,
+              prenom: true,
+            }
           }
         }
-      }
-    })
+      })
+    )
 
     return NextResponse.json(boutiqueMaj)
   } catch (erreur) {
@@ -146,12 +152,14 @@ export async function DELETE(
 
     const { id } = await context.params
 
-    await prisma.boutique.delete({
-      where: {
-        id: id,
-        commercantId: session.user.id
-      }
-    })
+    await avecRetry(() =>
+      prisma.boutique.delete({
+        where: {
+          id: id,
+          commercantId: session.user.id
+        }
+      })
+    )
 
     return NextResponse.json({ message: "Boutique supprimée" })
   } catch (erreur) {

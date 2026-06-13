@@ -1,4 +1,4 @@
-// src/components/formulaires/formulaire-connexion.tsx - Version simplifiée
+// src/components/formulaires/formulaire-connexion.tsx
 "use client"
 
 import { useState } from "react"
@@ -7,91 +7,193 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { Mail, Lock, Loader2 } from "lucide-react"
+import {
+    Mail, Lock, Phone, Key, Loader2, User, Building2
+} from "lucide-react"
 
 export function FormulaireConnexion() {
+    const [mode, setMode] = useState<"commercant" | "employe">("commercant")
     const [chargement, setChargement] = useState(false)
-    const [donnees, setDonnees] = useState({
-        email: "",
-        motDePasse: "",
-    })
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    // Commerçant
+    const [email, setEmail] = useState("")
+    const [motDePasse, setMotDePasse] = useState("")
+
+    // Employé
+    const [telephone, setTelephone] = useState("")
+    const [code, setCode] = useState("")
+
+    const handleSubmitCommercant = async (e: React.FormEvent) => {
         e.preventDefault()
         setChargement(true)
 
         try {
-            // Essayer d'abord de se connecter sans redirect
-            const resultat = await signIn("credentials", {
-                email: donnees.email,
-                motDePasse: donnees.motDePasse,
+            const resultat = await signIn("commercant", {
+                email,
+                motDePasse,
+                typeConnexion: "commercant",
                 redirect: false,
             })
 
             if (resultat?.error) {
                 toast.error("Email ou mot de passe incorrect")
-                setChargement(false)
-                return
-            }
-
-            // Récupérer la session
-            const sessionRes = await fetch("/api/auth/session")
-            const session = await sessionRes.json()
-
-            toast.success("Connexion réussie !")
-
-            // Rediriger avec window.location pour un reload complet
-            const role = session?.user?.role
-            if (role === "ADMIN") {
-                window.location.href = "/admin"
-            } else if (role === "COMMERCANT") {
-                window.location.href = "/commercant"
-            } else {
+            } else if (resultat?.ok) {
+                toast.success("Connexion réussie !")
                 window.location.href = "/commercant"
             }
-        } catch (erreur) {
-            console.error("Erreur:", erreur)
-            toast.error("Erreur lors de la connexion")
+        } catch {
+            toast.error("Erreur de connexion")
+        } finally {
+            setChargement(false)
+        }
+    }
+
+    const handleSubmitEmploye = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setChargement(true)
+
+        try {
+            const resultat = await signIn("employe", {
+                telephone,
+                code,
+                typeConnexion: "employe",
+                redirect: false,
+            })
+
+            if (resultat?.error) {
+                toast.error("Numéro ou code incorrect")
+            } else if (resultat?.ok) {
+                toast.success("Connexion réussie !")
+                window.location.href = "/employe"
+            }
+        } catch {
+            toast.error("Erreur de connexion")
+        } finally {
             setChargement(false)
         }
     }
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-                <Label htmlFor="email">Email</Label>
-                <div className="relative mt-1.5">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                        id="email"
-                        type="email"
-                        required
-                        value={donnees.email}
-                        onChange={(e) => setDonnees({ ...donnees, email: e.target.value })}
-                        className="pl-10"
-                    />
-                </div>
+        <div className="space-y-6">
+            {/* Sélecteur de mode */}
+            <div className="flex bg-gray-100 rounded-lg p-1">
+                <button
+                    onClick={() => setMode("commercant")}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-all ${mode === "commercant"
+                            ? "bg-white shadow text-blue-600"
+                            : "text-gray-500 hover:text-gray-700"
+                        }`}
+                >
+                    <Building2 className="h-4 w-4" />
+                    Commerçant
+                </button>
+                <button
+                    onClick={() => setMode("employe")}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-all ${mode === "employe"
+                            ? "bg-white shadow text-blue-600"
+                            : "text-gray-500 hover:text-gray-700"
+                        }`}
+                >
+                    <User className="h-4 w-4" />
+                    Employé
+                </button>
             </div>
 
-            <div>
-                <Label htmlFor="motDePasse">Mot de passe</Label>
-                <div className="relative mt-1.5">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                        id="motDePasse"
-                        type="password"
-                        required
-                        value={donnees.motDePasse}
-                        onChange={(e) => setDonnees({ ...donnees, motDePasse: e.target.value })}
-                        className="pl-10"
-                    />
-                </div>
-            </div>
+            {/* Formulaire Commerçant */}
+            {mode === "commercant" && (
+                <form onSubmit={handleSubmitCommercant} className="space-y-4">
+                    <div>
+                        <Label htmlFor="email">Email</Label>
+                        <div className="relative mt-1.5">
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Input
+                                id="email"
+                                type="email"
+                                required
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="exemple@email.com"
+                                className="pl-10 h-11"
+                            />
+                        </div>
+                    </div>
 
-            <Button type="submit" className="w-full" disabled={chargement}>
-                {chargement ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Se connecter
-            </Button>
-        </form>
+                    <div>
+                        <Label htmlFor="motDePasse">Mot de passe</Label>
+                        <div className="relative mt-1.5">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Input
+                                id="motDePasse"
+                                type="password"
+                                required
+                                value={motDePasse}
+                                onChange={(e) => setMotDePasse(e.target.value)}
+                                placeholder="Votre mot de passe"
+                                className="pl-10 h-11"
+                            />
+                        </div>
+                    </div>
+
+                    <Button type="submit" className="w-full h-11" disabled={chargement}>
+                        {chargement ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                        Se connecter
+                    </Button>
+                </form>
+            )}
+
+            {/* Formulaire Employé */}
+            {mode === "employe" && (
+                <form onSubmit={handleSubmitEmploye} className="space-y-4">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800 mb-2">
+                        <p className="font-medium mb-1">🔐 Connexion employé</p>
+                        <p>Utilisez votre numéro de téléphone et votre code à 4 chiffres fourni par votre responsable.</p>
+                    </div>
+
+                    <div>
+                        <Label htmlFor="telephone">Numéro de téléphone</Label>
+                        <div className="relative mt-1.5">
+                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Input
+                                id="telephone"
+                                type="tel"
+                                required
+                                value={telephone}
+                                onChange={(e) => setTelephone(e.target.value)}
+                                placeholder="0612345678"
+                                className="pl-10 h-11"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <Label htmlFor="code">Code d'accès (4 chiffres)</Label>
+                        <div className="relative mt-1.5">
+                            <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Input
+                                id="code"
+                                type="text"
+                                inputMode="numeric"
+                                maxLength={4}
+                                pattern="[0-9]{4}"
+                                required
+                                value={code}
+                                onChange={(e) => {
+                                    const val = e.target.value.replace(/\D/g, "").slice(0, 4)
+                                    setCode(val)
+                                }}
+                                placeholder="••••"
+                                className="pl-10 h-11 text-center text-2xl tracking-widest font-mono"
+                                autoComplete="off"
+                            />
+                        </div>
+                    </div>
+
+                    <Button type="submit" className="w-full h-11" disabled={chargement}>
+                        {chargement ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                        Accéder à mon espace
+                    </Button>
+                </form>
+            )}
+        </div>
     )
 }

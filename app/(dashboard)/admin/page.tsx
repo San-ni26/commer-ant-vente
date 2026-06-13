@@ -1,7 +1,7 @@
 // src/app/(dashboard)/admin/page.tsx
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import { prisma } from "@/lib/prisma"
+import { prisma, avecRetry } from "@/lib/prisma"
 import { TableauDeBordAdmin } from "@/components/dashboard/tableau-de-bord-admin"
 
 export default async function PageAdmin() {
@@ -12,6 +12,14 @@ export default async function PageAdmin() {
   }
 
   try {
+    // Expirer les abonnements dépassés globalement
+    await avecRetry(() =>
+      prisma.abonnement.updateMany({
+        where: { statut: "ACTIF", dateFin: { lt: new Date() } },
+        data: { statut: "EXPIRE" }
+      })
+    )
+
     const maintenant = new Date()
     const debutMois = new Date(maintenant.getFullYear(), maintenant.getMonth(), 1)
 
@@ -21,36 +29,66 @@ export default async function PageAdmin() {
       nombreAbonnementsActifs,
       abonnementsExpirant,
       ventesDuMois,
-      revenuTotal
+      revenuTotal,
+      // Boutiques avec leur abonnement actif (pour détecter celles sans abonnement)
+      boutiquesAvecAbonnement
     ] = await Promise.all([
-      prisma.boutique.count(),
-      prisma.utilisateur.count({ where: { role: "COMMERCANT" } }),
-      prisma.abonnement.count({ where: { statut: "ACTIF" } }),
-      prisma.abonnement.findMany({
-        where: {
-          statut: "ACTIF",
-          dateFin: {
-            lte: new Date(maintenant.getTime() + 30 * 24 * 60 * 60 * 1000)
-          }
-        },
-        include: {
-          boutique: { select: { nom: true } },
-          commercant: { select: { nom: true, email: true } }
-        },
-        orderBy: { dateFin: 'asc' },
-        take: 10
-      }),
-      prisma.vente.aggregate({
-        where: { dateVente: { gte: debutMois } },
-        _sum: { montant: true }
-      }),
-      prisma.abonnement.aggregate({
-        where: { statut: "ACTIF" },
-        _sum: { montant: true }
-      })
+      avecRetry(() => prisma.boutique.count()),
+      avecRetry(() => prisma.utilisateur.count({ where: { role: "COMMERCANT" } })),
+      avecRetry(() => prisma.abonnement.count({ where: { statut: "ACTIF" } })),
+      avecRetry(() =>
+        prisma.abonnement.findMany({
+          where: {
+            statut: "ACTIF",
+            dateFin: { lte: new Date(maintenant.getTime() + 30 * 24 * 60 * 60 * 1000) }
+          },
+          include: {
+            boutique: { select: { nom: true } },
+            commercant: { select: { nom: true, email: true } }
+          },
+          orderBy: { dateFin: "asc" },
+          take: 10
+        })
+      ),
+      avecRetry(() =>
+        prisma.vente.aggregate({
+          where: { dateVente: { gte: debutMois } },
+          _sum: { montant: true }
+        })
+      ),
+      avecRetry(() =>
+        prisma.abonnement.aggregate({
+          where: { statut: "ACTIF" },
+          _sum: { montant: true }
+        })
+      ),
+      // Récupérer toutes les boutiques avec leur abonnement actif (s'il existe)
+      avecRetry(() =>
+        prisma.boutique.findMany({
+          include: {
+            commercant: { select: { nom: true, email: true } },
+            abonnements: {
+              where: { statut: "ACTIF", dateFin: { gte: new Date() } },
+              orderBy: { dateFin: "desc" },
+              take: 1,
+              select: { id: true, dateFin: true, duree: true }
+            }
+          },
+          orderBy: { dateCreation: "desc" }
+        })
+      )
     ])
 
-    // Passer les props directement, pas dans un objet statistiques
+    // Boutiques sans abonnement actif
+    const boutiqueSansAbonnement = boutiquesAvecAbonnement
+      .filter(b => b.abonnements.length === 0)
+      .map(b => ({
+        id: b.id,
+        nom: b.nom,
+        commercant: b.commercant.nom,
+        email: b.commercant.email
+      }))
+
     return (
       <TableauDeBordAdmin
         nombreBoutiques={nombreBoutiques}
@@ -58,6 +96,7 @@ export default async function PageAdmin() {
         nombreAbonnementsActifs={nombreAbonnementsActifs}
         ventesDuMois={ventesDuMois._sum.montant || 0}
         revenuTotal={revenuTotal._sum.montant || 0}
+        boutiqueSansAbonnement={boutiqueSansAbonnement}
         abonnementsExpirant={abonnementsExpirant.map(a => ({
           id: a.id,
           boutique: a.boutique.nom,

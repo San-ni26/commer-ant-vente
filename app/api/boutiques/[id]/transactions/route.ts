@@ -129,7 +129,7 @@ export async function PUT(
         prisma.boutique.update({
           where: { id: transaction.boutiqueId },
           data: {
-            solde: ["VERSEMENT", "VIREMENT_BANCAIRE"].includes(transaction.type)
+            solde: ["VERSEMENT"].includes(transaction.type)
               ? { increment: transaction.montant }
               : { decrement: transaction.montant }
           }
@@ -147,7 +147,7 @@ export async function PUT(
         prisma.boutique.update({
           where: { id: transaction.boutiqueId },
           data: {
-            solde: ["VERSEMENT", "VIREMENT_BANCAIRE"].includes(transaction.type)
+            solde: ["VERSEMENT"].includes(transaction.type)
               ? { decrement: transaction.montant }
               : { increment: transaction.montant }
           }
@@ -194,7 +194,7 @@ export async function DELETE(
         prisma.boutique.update({
           where: { id: transaction.boutiqueId },
           data: {
-            solde: ["VERSEMENT", "VIREMENT_BANCAIRE"].includes(transaction.type)
+            solde: ["VERSEMENT"].includes(transaction.type)
               ? { decrement: transaction.montant }
               : { increment: transaction.montant }
           }

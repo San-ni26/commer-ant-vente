@@ -6,11 +6,6 @@ import { prisma } from "./prisma"
 import bcrypt from "bcryptjs"
 import { z } from "zod"
 
-const schemaConnexion = z.object({
-  email: z.string().email("Email invalide"),
-  motDePasse: z.string().min(6, "Mot de passe trop court")
-})
-
 export const authConfig: NextAuthConfig = {
   adapter: PrismaAdapter(prisma),
   session: {
@@ -21,53 +16,69 @@ export const authConfig: NextAuthConfig = {
   },
   providers: [
     Credentials({
-      name: "credentials",
+      id: "commercant",
+      name: "Commerçant",
       credentials: {
-        email: { 
-          label: "Email", 
-          type: "email",
-          placeholder: "exemple@email.com"
-        },
-        motDePasse: { 
-          label: "Mot de passe", 
-          type: "password" 
-        }
+        email: { label: "Email", type: "email" },
+        motDePasse: { label: "Mot de passe", type: "password" },
+        typeConnexion: { label: "Type", type: "text" }
       },
       async authorize(credentials) {
-        try {
-          if (!credentials?.email || !credentials?.motDePasse) {
-            return null
+        if (!credentials?.email || !credentials?.motDePasse) return null
+
+        const utilisateur = await prisma.utilisateur.findUnique({
+          where: { email: credentials.email as string }
+        })
+
+        if (!utilisateur || !utilisateur.emailVerifie) return null
+
+        const valide = await bcrypt.compare(
+          credentials.motDePasse as string,
+          utilisateur.motDePasse
+        )
+
+        if (!valide) return null
+
+        return {
+          id: utilisateur.id,
+          email: utilisateur.email,
+          name: utilisateur.nom,
+          role: utilisateur.role,
+        }
+      }
+    }),
+    Credentials({
+      id: "employe",
+      name: "Employé",
+      credentials: {
+        telephone: { label: "Téléphone", type: "tel" },
+        code: { label: "Code", type: "text" },
+        typeConnexion: { label: "Type", type: "text" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.telephone || !credentials?.code) return null
+
+        const employe = await prisma.employe.findFirst({
+          where: {
+            telephone: credentials.telephone as string,
+            code: credentials.code as string,
+          },
+          include: {
+            boutique: {
+              select: { id: true, nom: true }
+            }
           }
+        })
 
-          const { email, motDePasse } = schemaConnexion.parse(credentials)
+        if (!employe) return null
 
-          const utilisateur = await prisma.utilisateur.findUnique({
-            where: { email }
-          })
-
-          if (!utilisateur || !utilisateur.emailVerifie) {
-            return null
-          }
-
-          const motDePasseValide = await bcrypt.compare(
-            motDePasse,
-            utilisateur.motDePasse
-          )
-
-          if (!motDePasseValide) {
-            return null
-          }
-
-          // Retourner l'utilisateur avec le rôle
-          return {
-            id: utilisateur.id,
-            email: utilisateur.email,
-            name: utilisateur.nom,
-            role: utilisateur.role,
-          }
-        } catch (error) {
-          console.error("Erreur d'authentification:", error)
-          return null
+        return {
+          id: employe.id,
+          name: `${employe.prenom || ""} ${employe.nom}`.trim(),
+          telephone: employe.telephone,
+          role: "EMPLOYE",
+          boutiqueId: employe.boutique?.id,
+          boutiqueNom: employe.boutique?.nom,
         }
       }
     })
@@ -75,15 +86,19 @@ export const authConfig: NextAuthConfig = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = user.role ?? "COMMERCANT"  // Valeur par défaut
-        token.id = user.id ?? ""  // Garantir que ce n'est pas undefined
+        token.role = user.role || "EMPLOYE"
+        token.id = user.id || ""
+        token.boutiqueId = (user as any).boutiqueId || null
+        token.boutiqueNom = (user as any).boutiqueNom || null
       }
       return token
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.role = (token.role as string) ?? "COMMERCANT"
-        session.user.id = (token.id as string) ?? ""
+        session.user.role = token.role as string
+        session.user.id = token.id as string
+          ; (session.user as any).boutiqueId = token.boutiqueId
+          ; (session.user as any).boutiqueNom = token.boutiqueNom
       }
       return session
     }

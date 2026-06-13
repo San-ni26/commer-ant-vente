@@ -8,6 +8,7 @@ import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { FormulaireTransaction } from "@/components/formulaires/formulaire-transaction"
 import { ListeTransactions } from "@/components/transactions/liste-transactions"
+import { ExportPDFTransactions } from "@/components/transactions/export-pdf-transactions"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -44,10 +45,10 @@ export default async function PageTransactions({ params }: PageProps) {
   // Statistiques
   const stats = {
     totalVersements: transactions
-      .filter(t => t.type === "VERSEMENT" && t.verifiee)
+      .filter(t => ["VERSEMENT", "VIREMENT_BANCAIRE"].includes(t.type) && t.verifiee)
       .reduce((sum, t) => sum + t.montant, 0),
     totalDepenses: transactions
-      .filter(t => t.type === "DEPENSE" && t.verifiee)
+      .filter(t => ["DEPENSE", "RETRAIT"].includes(t.type) && t.verifiee)
       .reduce((sum, t) => sum + t.montant, 0),
     enAttente: transactions.filter(t => !t.verifiee).length,
   }
@@ -67,7 +68,10 @@ export default async function PageTransactions({ params }: PageProps) {
             <p className="text-sm text-gray-500">Versements, dépenses et virements</p>
           </div>
         </div>
-        <FormulaireTransaction boutiqueId={id} />
+        <div className="flex flex-wrap items-center gap-2">
+          <ExportPDFTransactions transactions={transactions} boutiqueNom={boutique.nom} />
+          <FormulaireTransaction boutiqueId={id} />
+        </div>
       </div>
 
       {/* Résumé */}
@@ -76,7 +80,7 @@ export default async function PageTransactions({ params }: PageProps) {
           <CardContent className="p-4 text-center">
             <p className="text-xs sm:text-sm text-gray-500">Versements</p>
             <p className="text-lg sm:text-xl font-bold text-green-600">
-              +{stats.totalVersements.toFixed(2)} €
+              +{stats.totalVersements.toLocaleString("fr-FR")} FCFA
             </p>
           </CardContent>
         </Card>
@@ -84,7 +88,7 @@ export default async function PageTransactions({ params }: PageProps) {
           <CardContent className="p-4 text-center">
             <p className="text-xs sm:text-sm text-gray-500">Dépenses</p>
             <p className="text-lg sm:text-xl font-bold text-red-600">
-              -{stats.totalDepenses.toFixed(2)} €
+              -{stats.totalDepenses.toLocaleString("fr-FR")} FCFA
             </p>
           </CardContent>
         </Card>
@@ -100,7 +104,7 @@ export default async function PageTransactions({ params }: PageProps) {
           <CardContent className="p-4 text-center">
             <p className="text-xs sm:text-sm text-gray-500">Solde boutique</p>
             <p className="text-lg sm:text-xl font-bold text-blue-600">
-              {boutique.solde.toFixed(2)} €
+              {boutique.solde.toLocaleString("fr-FR")} FCFA
             </p>
           </CardContent>
         </Card>

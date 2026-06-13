@@ -30,6 +30,7 @@ export type EmployeMinAggregateOutputType = {
   prenom: string | null
   telephone: string | null
   code: string | null
+  utilisateurId: string | null
   boutiqueId: string | null
   dateCreation: Date | null
   dateMiseAJour: Date | null
@@ -41,6 +42,7 @@ export type EmployeMaxAggregateOutputType = {
   prenom: string | null
   telephone: string | null
   code: string | null
+  utilisateurId: string | null
   boutiqueId: string | null
   dateCreation: Date | null
   dateMiseAJour: Date | null
@@ -52,6 +54,7 @@ export type EmployeCountAggregateOutputType = {
   prenom: number
   telephone: number
   code: number
+  utilisateurId: number
   boutiqueId: number
   dateCreation: number
   dateMiseAJour: number
@@ -65,6 +68,7 @@ export type EmployeMinAggregateInputType = {
   prenom?: true
   telephone?: true
   code?: true
+  utilisateurId?: true
   boutiqueId?: true
   dateCreation?: true
   dateMiseAJour?: true
@@ -76,6 +80,7 @@ export type EmployeMaxAggregateInputType = {
   prenom?: true
   telephone?: true
   code?: true
+  utilisateurId?: true
   boutiqueId?: true
   dateCreation?: true
   dateMiseAJour?: true
@@ -87,6 +92,7 @@ export type EmployeCountAggregateInputType = {
   prenom?: true
   telephone?: true
   code?: true
+  utilisateurId?: true
   boutiqueId?: true
   dateCreation?: true
   dateMiseAJour?: true
@@ -171,6 +177,7 @@ export type EmployeGroupByOutputType = {
   prenom: string | null
   telephone: string
   code: string
+  utilisateurId: string | null
   boutiqueId: string | null
   dateCreation: Date
   dateMiseAJour: Date
@@ -203,6 +210,7 @@ export type EmployeWhereInput = {
   prenom?: Prisma.StringNullableFilter<"Employe"> | string | null
   telephone?: Prisma.StringFilter<"Employe"> | string
   code?: Prisma.StringFilter<"Employe"> | string
+  utilisateurId?: Prisma.StringNullableFilter<"Employe"> | string | null
   boutiqueId?: Prisma.StringNullableFilter<"Employe"> | string | null
   dateCreation?: Prisma.DateTimeFilter<"Employe"> | Date | string
   dateMiseAJour?: Prisma.DateTimeFilter<"Employe"> | Date | string
@@ -215,6 +223,7 @@ export type EmployeOrderByWithRelationInput = {
   prenom?: Prisma.SortOrderInput | Prisma.SortOrder
   telephone?: Prisma.SortOrder
   code?: Prisma.SortOrder
+  utilisateurId?: Prisma.SortOrderInput | Prisma.SortOrder
   boutiqueId?: Prisma.SortOrderInput | Prisma.SortOrder
   dateCreation?: Prisma.SortOrder
   dateMiseAJour?: Prisma.SortOrder
@@ -224,6 +233,7 @@ export type EmployeOrderByWithRelationInput = {
 export type EmployeWhereUniqueInput = Prisma.AtLeast<{
   id?: string
   code?: string
+  utilisateurId?: string
   AND?: Prisma.EmployeWhereInput | Prisma.EmployeWhereInput[]
   OR?: Prisma.EmployeWhereInput[]
   NOT?: Prisma.EmployeWhereInput | Prisma.EmployeWhereInput[]
@@ -234,7 +244,7 @@ export type EmployeWhereUniqueInput = Prisma.AtLeast<{
   dateCreation?: Prisma.DateTimeFilter<"Employe"> | Date | string
   dateMiseAJour?: Prisma.DateTimeFilter<"Employe"> | Date | string
   boutique?: Prisma.XOR<Prisma.BoutiqueNullableScalarRelationFilter, Prisma.BoutiqueWhereInput> | null
-}, "id" | "code">
+}, "id" | "code" | "utilisateurId">
 
 export type EmployeOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -242,6 +252,7 @@ export type EmployeOrderByWithAggregationInput = {
   prenom?: Prisma.SortOrderInput | Prisma.SortOrder
   telephone?: Prisma.SortOrder
   code?: Prisma.SortOrder
+  utilisateurId?: Prisma.SortOrderInput | Prisma.SortOrder
   boutiqueId?: Prisma.SortOrderInput | Prisma.SortOrder
   dateCreation?: Prisma.SortOrder
   dateMiseAJour?: Prisma.SortOrder
@@ -259,6 +270,7 @@ export type EmployeScalarWhereWithAggregatesInput = {
   prenom?: Prisma.StringNullableWithAggregatesFilter<"Employe"> | string | null
   telephone?: Prisma.StringWithAggregatesFilter<"Employe"> | string
   code?: Prisma.StringWithAggregatesFilter<"Employe"> | string
+  utilisateurId?: Prisma.StringNullableWithAggregatesFilter<"Employe"> | string | null
   boutiqueId?: Prisma.StringNullableWithAggregatesFilter<"Employe"> | string | null
   dateCreation?: Prisma.DateTimeWithAggregatesFilter<"Employe"> | Date | string
   dateMiseAJour?: Prisma.DateTimeWithAggregatesFilter<"Employe"> | Date | string
@@ -270,6 +282,7 @@ export type EmployeCreateInput = {
   prenom?: string | null
   telephone: string
   code: string
+  utilisateurId?: string | null
   dateCreation?: Date | string
   dateMiseAJour?: Date | string
   boutique?: Prisma.BoutiqueCreateNestedOneWithoutEmployesInput
@@ -281,6 +294,7 @@ export type EmployeUncheckedCreateInput = {
   prenom?: string | null
   telephone: string
   code: string
+  utilisateurId?: string | null
   boutiqueId?: string | null
   dateCreation?: Date | string
   dateMiseAJour?: Date | string
@@ -292,6 +306,7 @@ export type EmployeUpdateInput = {
   prenom?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   telephone?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
+  utilisateurId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateCreation?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   dateMiseAJour?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   boutique?: Prisma.BoutiqueUpdateOneWithoutEmployesNestedInput
@@ -303,6 +318,7 @@ export type EmployeUncheckedUpdateInput = {
   prenom?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   telephone?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
+  utilisateurId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   boutiqueId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateCreation?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   dateMiseAJour?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -314,6 +330,7 @@ export type EmployeCreateManyInput = {
   prenom?: string | null
   telephone: string
   code: string
+  utilisateurId?: string | null
   boutiqueId?: string | null
   dateCreation?: Date | string
   dateMiseAJour?: Date | string
@@ -325,6 +342,7 @@ export type EmployeUpdateManyMutationInput = {
   prenom?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   telephone?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
+  utilisateurId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateCreation?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   dateMiseAJour?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -335,6 +353,7 @@ export type EmployeUncheckedUpdateManyInput = {
   prenom?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   telephone?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
+  utilisateurId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   boutiqueId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateCreation?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   dateMiseAJour?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -356,6 +375,7 @@ export type EmployeCountOrderByAggregateInput = {
   prenom?: Prisma.SortOrder
   telephone?: Prisma.SortOrder
   code?: Prisma.SortOrder
+  utilisateurId?: Prisma.SortOrder
   boutiqueId?: Prisma.SortOrder
   dateCreation?: Prisma.SortOrder
   dateMiseAJour?: Prisma.SortOrder
@@ -367,6 +387,7 @@ export type EmployeMaxOrderByAggregateInput = {
   prenom?: Prisma.SortOrder
   telephone?: Prisma.SortOrder
   code?: Prisma.SortOrder
+  utilisateurId?: Prisma.SortOrder
   boutiqueId?: Prisma.SortOrder
   dateCreation?: Prisma.SortOrder
   dateMiseAJour?: Prisma.SortOrder
@@ -378,6 +399,7 @@ export type EmployeMinOrderByAggregateInput = {
   prenom?: Prisma.SortOrder
   telephone?: Prisma.SortOrder
   code?: Prisma.SortOrder
+  utilisateurId?: Prisma.SortOrder
   boutiqueId?: Prisma.SortOrder
   dateCreation?: Prisma.SortOrder
   dateMiseAJour?: Prisma.SortOrder
@@ -431,6 +453,7 @@ export type EmployeCreateWithoutBoutiqueInput = {
   prenom?: string | null
   telephone: string
   code: string
+  utilisateurId?: string | null
   dateCreation?: Date | string
   dateMiseAJour?: Date | string
 }
@@ -441,6 +464,7 @@ export type EmployeUncheckedCreateWithoutBoutiqueInput = {
   prenom?: string | null
   telephone: string
   code: string
+  utilisateurId?: string | null
   dateCreation?: Date | string
   dateMiseAJour?: Date | string
 }
@@ -480,6 +504,7 @@ export type EmployeScalarWhereInput = {
   prenom?: Prisma.StringNullableFilter<"Employe"> | string | null
   telephone?: Prisma.StringFilter<"Employe"> | string
   code?: Prisma.StringFilter<"Employe"> | string
+  utilisateurId?: Prisma.StringNullableFilter<"Employe"> | string | null
   boutiqueId?: Prisma.StringNullableFilter<"Employe"> | string | null
   dateCreation?: Prisma.DateTimeFilter<"Employe"> | Date | string
   dateMiseAJour?: Prisma.DateTimeFilter<"Employe"> | Date | string
@@ -491,6 +516,7 @@ export type EmployeCreateManyBoutiqueInput = {
   prenom?: string | null
   telephone: string
   code: string
+  utilisateurId?: string | null
   dateCreation?: Date | string
   dateMiseAJour?: Date | string
 }
@@ -501,6 +527,7 @@ export type EmployeUpdateWithoutBoutiqueInput = {
   prenom?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   telephone?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
+  utilisateurId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateCreation?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   dateMiseAJour?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -511,6 +538,7 @@ export type EmployeUncheckedUpdateWithoutBoutiqueInput = {
   prenom?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   telephone?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
+  utilisateurId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateCreation?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   dateMiseAJour?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -521,6 +549,7 @@ export type EmployeUncheckedUpdateManyWithoutBoutiqueInput = {
   prenom?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   telephone?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
+  utilisateurId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateCreation?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   dateMiseAJour?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -533,6 +562,7 @@ export type EmployeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   prenom?: boolean
   telephone?: boolean
   code?: boolean
+  utilisateurId?: boolean
   boutiqueId?: boolean
   dateCreation?: boolean
   dateMiseAJour?: boolean
@@ -545,6 +575,7 @@ export type EmployeSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   prenom?: boolean
   telephone?: boolean
   code?: boolean
+  utilisateurId?: boolean
   boutiqueId?: boolean
   dateCreation?: boolean
   dateMiseAJour?: boolean
@@ -557,6 +588,7 @@ export type EmployeSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   prenom?: boolean
   telephone?: boolean
   code?: boolean
+  utilisateurId?: boolean
   boutiqueId?: boolean
   dateCreation?: boolean
   dateMiseAJour?: boolean
@@ -569,12 +601,13 @@ export type EmployeSelectScalar = {
   prenom?: boolean
   telephone?: boolean
   code?: boolean
+  utilisateurId?: boolean
   boutiqueId?: boolean
   dateCreation?: boolean
   dateMiseAJour?: boolean
 }
 
-export type EmployeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "nom" | "prenom" | "telephone" | "code" | "boutiqueId" | "dateCreation" | "dateMiseAJour", ExtArgs["result"]["employe"]>
+export type EmployeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "nom" | "prenom" | "telephone" | "code" | "utilisateurId" | "boutiqueId" | "dateCreation" | "dateMiseAJour", ExtArgs["result"]["employe"]>
 export type EmployeInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   boutique?: boolean | Prisma.Employe$boutiqueArgs<ExtArgs>
 }
@@ -596,6 +629,7 @@ export type $EmployePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     prenom: string | null
     telephone: string
     code: string
+    utilisateurId: string | null
     boutiqueId: string | null
     dateCreation: Date
     dateMiseAJour: Date
@@ -1028,6 +1062,7 @@ export interface EmployeFieldRefs {
   readonly prenom: Prisma.FieldRef<"Employe", 'String'>
   readonly telephone: Prisma.FieldRef<"Employe", 'String'>
   readonly code: Prisma.FieldRef<"Employe", 'String'>
+  readonly utilisateurId: Prisma.FieldRef<"Employe", 'String'>
   readonly boutiqueId: Prisma.FieldRef<"Employe", 'String'>
   readonly dateCreation: Prisma.FieldRef<"Employe", 'DateTime'>
   readonly dateMiseAJour: Prisma.FieldRef<"Employe", 'DateTime'>

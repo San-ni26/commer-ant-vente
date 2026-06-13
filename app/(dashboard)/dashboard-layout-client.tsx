@@ -1,10 +1,9 @@
 // src/app/(dashboard)/dashboard-layout-client.tsx
 "use client"
 
-import { useState } from "react"
 import { BarreLaterale } from "@/components/shared/barre-laterale"
 import { EnTete } from "@/components/shared/en-tete"
-import { cn } from "@/lib/utils"
+import { BarreNavigationBas } from "@/components/shared/barre-navigation-bas"
 
 interface DashboardLayoutClientProps {
     children: React.ReactNode
@@ -16,37 +15,28 @@ interface DashboardLayoutClientProps {
 }
 
 export function DashboardLayoutClient({ children, user }: DashboardLayoutClientProps) {
-    const [menuOuvert, setMenuOuvert] = useState(false)
-
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Overlay mobile */}
-            {menuOuvert && (
-                <div
-                    className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-                    onClick={() => setMenuOuvert(false)}
-                />
-            )}
+        <div className="min-h-screen bg-gray-50 flex flex-col lg:flex-row">
+            {/* Barre Latérale fixe pour écrans de taille Desktop */}
+            <aside className="hidden lg:block fixed top-0 left-0 bottom-0 z-40 w-64 border-r border-gray-200">
+                <BarreLaterale user={user} />
+            </aside>
 
-            {/* Sidebar mobile */}
-            <div className={cn(
-                "fixed top-0 left-0 z-50 h-full w-64 transform transition-transform duration-300 lg:translate-x-0",
-                menuOuvert ? "translate-x-0" : "-translate-x-full"
-            )}>
-                <BarreLaterale onClose={() => setMenuOuvert(false)} user={user} />
-            </div>
-
-            {/* Contenu principal */}
-            <div className="lg:ml-64">
+            {/* Zone de contenu principal */}
+            <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
                 <EnTete
-                    onMenuClick={() => setMenuOuvert(!menuOuvert)}
+                    onMenuClick={() => {}}
                     user={user}
                 />
 
-                <main className="p-4 sm:p-6 lg:p-8">
+                {/* Espace de contenu principal - Ajout de padding de bas de page sur mobile pour libérer l'espace de la barre basse */}
+                <main className="flex-grow p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8">
                     {children}
                 </main>
             </div>
+
+            {/* Barre de navigation basse pour mobile */}
+            <BarreNavigationBas user={user} />
         </div>
     )
 }

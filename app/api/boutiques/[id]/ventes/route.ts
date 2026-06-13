@@ -16,7 +16,7 @@ export async function GET(
 ) {
   try {
     const session = await auth()
-    
+
     if (!session?.user) {
       return NextResponse.json(
         { erreur: "Non authentifié" },
@@ -27,7 +27,7 @@ export async function GET(
     const { id } = await context.params
     const { searchParams } = new URL(request.url)
     const date = searchParams.get("date")
-    
+
     const ventes = await prisma.vente.findMany({
       where: {
         boutiqueId: id,
@@ -69,23 +69,35 @@ export async function POST(
     const session = await auth()
     
     if (!session?.user) {
-      return NextResponse.json(
-        { erreur: "Non authentifié" },
-        { status: 401 }
-      )
+      return NextResponse.json({ erreur: "Non authentifié" }, { status: 401 })
     }
 
     const { id } = await context.params
     const corps = await request.json()
     const donneesValidees = schemaVente.parse(corps)
 
+    // Vérifier l'accès à la boutique
     const boutique = await prisma.boutique.findFirst({
       where: {
         id: id,
         OR: [
           { commercantId: session.user.id },
-          { gerantId: session.user.id }
+          { gerantId: session.user.id },
+          { 
+            employes: { 
+              some: { 
+                OR: [
+                  { id: session.user.id },
+                  { utilisateurId: session.user.id }
+                ]
+              }
+            }
+          }
         ]
+      },
+      select: {
+        id: true,
+        commercantId: true
       }
     })
 
@@ -96,33 +108,31 @@ export async function POST(
       )
     }
 
+    // Si l'utilisateur est un employé, enregistrer la vente au nom du commerçant
+    const enregistreParId = (session.user as any).role === "EMPLOYE" 
+      ? boutique.commercantId 
+      : session.user.id
+
     const [vente] = await prisma.$transaction([
       prisma.vente.create({
         data: {
           montant: donneesValidees.montant,
           description: donneesValidees.description,
           boutiqueId: id,
-          enregistreParId: session.user.id,
+          enregistreParId: enregistreParId,
           dateVente: donneesValidees.dateVente 
             ? new Date(donneesValidees.dateVente)
             : new Date(),
         },
         include: {
           enregistrePar: {
-            select: {
-              nom: true,
-              prenom: true,
-            }
+            select: { nom: true, prenom: true }
           }
         }
       }),
       prisma.boutique.update({
-        where: { id: id },
-        data: {
-          solde: {
-            increment: donneesValidees.montant
-          }
-        }
+        where: { id },
+        data: { solde: { increment: donneesValidees.montant } }
       })
     ])
 
@@ -130,17 +140,14 @@ export async function POST(
   } catch (erreur) {
     if (erreur instanceof z.ZodError) {
       return NextResponse.json(
-        { 
-          erreur: "Données invalides", 
-          details: erreur.issues  // Corrigé ici
-        },
+        { erreur: "Données invalides", details: erreur.issues },
         { status: 400 }
       )
     }
     
-    console.error("Erreur lors de la création de la vente:", erreur)
+    console.error("Erreur création vente:", erreur)
     return NextResponse.json(
-      { erreur: "Erreur lors de la création de la vente" },
+      { erreur: "Erreur serveur" },
       { status: 500 }
     )
   }

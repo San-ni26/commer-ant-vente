@@ -189,9 +189,9 @@ export function ListeTransactions({
                                 </td>
                                 <td className="py-3 text-sm">{t.type}</td>
                                 <td className="py-3 text-sm max-w-[200px] truncate">{t.description || "-"}</td>
-                                <td className={`py-3 text-sm text-right font-bold ${["VERSEMENT", "VIREMENT_BANCAIRE"].includes(t.type) ? "text-green-600" : "text-red-600"
+                                <td className={`py-3 text-sm text-right font-bold ${["VERSEMENT"].includes(t.type) ? "text-green-600" : "text-red-600"
                                     }`}>
-                                    {["VERSEMENT", "VIREMENT_BANCAIRE"].includes(t.type) ? "+" : "-"}{t.montant.toFixed(2)} FCFA
+                                    {["VERSEMENT"].includes(t.type) ? "+" : "-"}{t.montant.toFixed(2)} FCFA
                                 </td>
                                 <td className="py-3">
                                     <Badge variant={t.verifiee ? "default" : "secondary"}>
@@ -228,8 +228,8 @@ export function ListeTransactions({
                     <div key={t.id} className="bg-white border rounded-lg p-4 space-y-2">
                         <div className="flex justify-between">
                             <span className="text-sm">{t.type}</span>
-                            <span className={`font-bold ${["VERSEMENT", "VIREMENT_BANCAIRE"].includes(t.type) ? "text-green-600" : "text-red-600"}`}>
-                                {["VERSEMENT", "VIREMENT_BANCAIRE"].includes(t.type) ? "+" : "-"}{t.montant.toFixed(2)} €
+                            <span className={`font-bold ${["VERSEMENT"].includes(t.type) ? "text-green-600" : "text-red-600"}`}>
+                                {["VERSEMENT"].includes(t.type) ? "+" : "-"}{t.montant.toFixed(2)} FCFA
                             </span>
                         </div>
                         <p className="text-xs text-gray-500">{format(getDateValue(t.dateTransaction), "dd/MM/yyyy HH:mm", { locale: fr })}</p>

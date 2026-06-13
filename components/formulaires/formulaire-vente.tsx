@@ -83,12 +83,12 @@ export function FormulaireVente({ boutiqueId }: { boutiqueId: string }) {
                         <Input
                             id="montant"
                             type="number"
-                            step="0.01"
-                            min="0.01"
+                            step="100"
+                            min="0"
                             required
                             value={donnees.montant}
                             onChange={(e) => setDonnees({ ...donnees, montant: e.target.value })}
-                            placeholder="0.00"
+                            placeholder="0"
                         />
                     </div>
                     <div>

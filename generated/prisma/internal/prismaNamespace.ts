@@ -930,6 +930,7 @@ export const EmployeScalarFieldEnum = {
   prenom: 'prenom',
   telephone: 'telephone',
   code: 'code',
+  utilisateurId: 'utilisateurId',
   boutiqueId: 'boutiqueId',
   dateCreation: 'dateCreation',
   dateMiseAJour: 'dateMiseAJour'

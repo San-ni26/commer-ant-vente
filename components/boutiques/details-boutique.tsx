@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Store, Users, DollarSign, TrendingUp, ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { cn } from "@/lib/utils"
 
 interface BoutiqueDetail {
   id: string
@@ -71,22 +72,43 @@ export function DetailsBoutique({ boutiqueId }: { boutiqueId: string }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           <Link href="/commercant/boutiques">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Retour
+            <Button variant="outline" size="sm" className="h-9 px-3">
+              <ArrowLeft className="h-4 w-4 sm:mr-2 flex-shrink-0" />
+              <span className="hidden sm:inline">Retour</span>
             </Button>
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold">{boutique.nom}</h1>
-            <p className="text-gray-500">Gestion de la boutique</p>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate">{boutique.nom}</h1>
+            <p className="text-xs sm:text-sm text-gray-500">Gestion de la boutique</p>
           </div>
         </div>
-        <Badge variant={boutique.solde >= 0 ? "default" : "destructive"} className="text-lg px-4 py-2">
-          Solde: {boutique.solde.toFixed(2)} FCFA
-        </Badge>
+        <div className="flex items-center gap-2.5 px-4 py-2 bg-zinc-800 border border-zinc-700 text-white rounded-xl shadow-sm text-sm sm:text-base font-semibold w-fit shrink-0">
+          <span className="text-zinc-400 font-medium">Solde:</span>
+          <span className={cn(
+            "font-bold",
+            boutique.solde >= 0 ? "text-emerald-400" : "text-rose-400"
+          )}>
+            {boutique.solde.toLocaleString("fr-FR")} FCFA
+          </span>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        <Link href={`/commercant/boutiques/${boutiqueId}/ventes`} className="w-full sm:w-auto">
+          <Button className="w-full sm:w-auto">
+            <DollarSign className="h-4 w-4 mr-2" />
+            Voir les Ventes
+          </Button>
+        </Link>
+        <Link href={`/commercant/boutiques/${boutiqueId}/transactions`} className="w-full sm:w-auto">
+          <Button variant="outline" className="w-full sm:w-auto">
+            <TrendingUp className="h-4 w-4 mr-2" />
+            Voir les Transactions
+          </Button>
+        </Link>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -178,21 +200,6 @@ export function DetailsBoutique({ boutiqueId }: { boutiqueId: string }) {
             )}
           </CardContent>
         </Card>
-      </div>
-
-      <div className="flex gap-4">
-        <Link href={`/commercant/boutiques/${boutiqueId}/ventes`}>
-          <Button>
-            <DollarSign className="h-4 w-4 mr-2" />
-            Voir les Ventes
-          </Button>
-        </Link>
-        <Link href={`/commercant/boutiques/${boutiqueId}/transactions`}>
-          <Button variant="outline">
-            <TrendingUp className="h-4 w-4 mr-2" />
-            Voir les Transactions
-          </Button>
-        </Link>
       </div>
     </div>
   )
