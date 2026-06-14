@@ -94,7 +94,7 @@ export default async function PageDashboardEmploye() {
                 <Store className="h-4 w-4" />
                 {boutique.nom}
                 <Badge variant="outline" className="text-xs">
-                  Solde: {boutique.solde.toFixed(2)} €
+                  Solde: {boutique.solde.toFixed(2)} FCFA
                 </Badge>
               </span>
             ) : (
@@ -135,7 +135,7 @@ export default async function PageDashboardEmploye() {
                 <DollarSign className="h-8 w-8 text-green-500 mx-auto mb-2" />
                 <p className="text-xs text-gray-500">Aujourd'hui</p>
                 <p className="text-xl sm:text-2xl font-bold text-green-600">
-                  {totalAujourdhui.toFixed(0)} €
+                  {totalAujourdhui.toFixed(0)} FCFA
                 </p>
               </CardContent>
             </Card>
@@ -155,7 +155,7 @@ export default async function PageDashboardEmploye() {
                 <TrendingUp className="h-8 w-8 text-purple-500 mx-auto mb-2" />
                 <p className="text-xs text-gray-500">Ce mois</p>
                 <p className="text-xl sm:text-2xl font-bold text-purple-600">
-                  {ventesMoisTotal.toFixed(0)} €
+                  {ventesMoisTotal.toFixed(0)} FCFA
                 </p>
               </CardContent>
             </Card>
@@ -205,7 +205,7 @@ export default async function PageDashboardEmploye() {
                           )}
                         </p>
                       </div>
-                      <Badge variant="default">{vente.montant.toFixed(2)} €</Badge>
+                      <Badge variant="default">{vente.montant.toFixed(2)} FCFA</Badge>
                     </div>
                   ))}
                 </div>
@@ -234,7 +234,7 @@ export default async function PageDashboardEmploye() {
                           </p>
                         </div>
                       </div>
-                      <span className="font-medium">{vente.montant.toFixed(2)} €</span>
+                      <span className="font-medium">{vente.montant.toFixed(2)} FCFA</span>
                     </div>
                   ))}
                 </div>

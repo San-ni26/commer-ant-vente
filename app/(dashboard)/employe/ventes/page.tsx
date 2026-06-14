@@ -80,7 +80,7 @@ export default async function PageVentesEmploye() {
             <Store className="h-4 w-4" />
             {boutique.nom}
             <Badge variant="outline" className="text-xs">
-              Solde: {boutique.solde.toFixed(2)} €
+              Solde: {boutique.solde.toFixed(2)} FCFA
             </Badge>
           </p>
         </div>
@@ -91,7 +91,7 @@ export default async function PageVentesEmploye() {
             <CardContent className="p-3 text-center">
               <DollarSign className="h-5 w-5 text-green-500 mx-auto mb-1" />
               <p className="text-[10px] text-gray-500">Aujourd'hui</p>
-              <p className="text-sm font-bold text-green-600">{totalJour.toFixed(0)} €</p>
+              <p className="text-sm font-bold text-green-600">{totalJour.toFixed(0)} FCFA</p>
             </CardContent>
           </Card>
           <Card>
@@ -106,7 +106,7 @@ export default async function PageVentesEmploye() {
               <Calendar className="h-5 w-5 text-purple-500 mx-auto mb-1" />
               <p className="text-[10px] text-gray-500">Mon mois</p>
               <p className="text-sm font-bold text-purple-600">
-                {(mesVentesMois._sum.montant || 0).toFixed(0)} €
+                {(mesVentesMois._sum.montant || 0).toFixed(0)} FCFA
               </p>
             </CardContent>
           </Card>
@@ -142,14 +142,14 @@ export default async function PageVentesEmploye() {
                       par {vente.enregistrePar.prenom || ""} {vente.enregistrePar.nom}
                     </p>
                   </div>
-                  <Badge variant="default">{vente.montant.toFixed(2)} €</Badge>
+                  <Badge variant="default">{vente.montant.toFixed(2)} FCFA</Badge>
                 </div>
               ))}
 
               {/* Total */}
               <div className="flex justify-between items-center pt-3 mt-3 border-t font-bold">
                 <span>Total aujourd'hui</span>
-                <span className="text-green-600">{totalJour.toFixed(2)} €</span>
+                <span className="text-green-600">{totalJour.toFixed(2)} FCFA</span>
               </div>
             </div>
           )}
