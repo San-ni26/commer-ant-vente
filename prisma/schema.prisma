@@ -42,6 +42,9 @@ model Boutique {
   employes      Employe[]
   transactions  Transaction[]
   ventes        Vente[]
+
+  @@index([commercantId])
+  @@index([commercantId, dateCreation(sort: Desc)])
 }
 
 model Employe {
@@ -55,6 +58,8 @@ model Employe {
   dateCreation  DateTime  @default(now())
   dateMiseAJour DateTime  @updatedAt
   boutique      Boutique? @relation(fields: [boutiqueId], references: [id])
+
+  @@index([boutiqueId])
 }
 
 model Vente {
@@ -67,6 +72,9 @@ model Vente {
   dateCreation    DateTime    @default(now())
   boutique        Boutique    @relation(fields: [boutiqueId], references: [id])
   enregistrePar   Utilisateur @relation(fields: [enregistreParId], references: [id])
+
+  @@index([boutiqueId, dateVente(sort: Desc)])
+  @@index([enregistreParId, dateVente(sort: Desc)])
 }
 
 model Transaction {
@@ -82,6 +90,9 @@ model Transaction {
   dateCreation    DateTime        @default(now())
   boutique        Boutique        @relation(fields: [boutiqueId], references: [id])
   verifieePar     Utilisateur?    @relation("TransactionsVerifiees", fields: [verifieeParId], references: [id])
+
+  @@index([boutiqueId, dateTransaction(sort: Desc)])
+  @@index([boutiqueId, type])
 }
 
 model Abonnement {
@@ -96,6 +107,9 @@ model Abonnement {
   dateCreation DateTime         @default(now())
   boutique     Boutique         @relation(fields: [boutiqueId], references: [id])
   commercant   Utilisateur      @relation(fields: [commercantId], references: [id])
+
+  @@index([commercantId, statut, dateFin])
+  @@index([boutiqueId, statut, dateFin])
 }
 
 enum Role {

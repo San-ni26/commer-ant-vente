@@ -20,65 +20,50 @@ export default async function PageDashboardEmploye() {
     redirect("/connexion")
   }
 
-  // Récupérer l'employé connecté avec sa boutique
-  const employe = await prisma.employe.findUnique({
-    where: { id: session.user.id },
-    include: {
-      boutique: {
-        select: {
-          id: true,
-          nom: true,
-          solde: true,
-        }
-      }
-    }
-  })
-
-  const boutique = employe?.boutique
-
+  // Données de base pour calculer les fenêtres temporelles
   const aujourdhui = new Date()
   aujourdhui.setHours(0, 0, 0, 0)
   const demain = new Date(aujourdhui)
   demain.setDate(demain.getDate() + 1)
+  const debutMois = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), 1)
 
-  // Ventes du jour (si boutique assignée)
-  let ventesDuJour: any[] = []
-  let totalAujourdhui = 0
-  let ventesMoisTotal = 0
-  let dernieresVentes: any[] = []
-
-  if (boutique) {
-    ventesDuJour = await prisma.vente.findMany({
+  // Toutes les requêtes en parallèle — une seule vague réseau
+  const [employe, ventesDuJour, ventesMois] = await Promise.all([
+    prisma.employe.findUnique({
+      where: { id: session.user.id },
+      include: {
+        boutique: {
+          select: { id: true, nom: true, solde: true }
+        }
+      }
+    }),
+    // Ventes du jour (chargées même si boutique inconnue — filtrées après)
+    prisma.vente.findMany({
       where: {
-        boutiqueId: boutique.id,
+        boutique: { employes: { some: { id: session.user.id } } },
         dateVente: { gte: aujourdhui, lt: demain }
       },
       orderBy: { dateVente: 'desc' },
       include: {
         enregistrePar: { select: { nom: true, prenom: true } }
-      }
-    })
-
-    totalAujourdhui = ventesDuJour.reduce((sum, v) => sum + v.montant, 0)
-
-    // Ventes du mois
-    const debutMois = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), 1)
-    const ventesMois = await prisma.vente.aggregate({
+      },
+      take: 50
+    }),
+    // Agrégat du mois (pas de findMany inutile)
+    prisma.vente.aggregate({
       where: {
-        boutiqueId: boutique.id,
+        boutique: { employes: { some: { id: session.user.id } } },
         dateVente: { gte: debutMois }
       },
       _sum: { montant: true }
     })
-    ventesMoisTotal = ventesMois._sum.montant || 0
+  ])
 
-    // Dernières ventes
-    dernieresVentes = await prisma.vente.findMany({
-      where: { boutiqueId: boutique.id },
-      orderBy: { dateVente: 'desc' },
-      take: 10
-    })
-  }
+  const boutique = employe?.boutique
+  const totalAujourdhui = ventesDuJour.reduce((sum, v) => sum + v.montant, 0)
+  const ventesMoisTotal = ventesMois._sum.montant || 0
+  // Réutilise ventesDuJour pour les "dernières ventes" — pas de requête supplémentaire
+  const dernieresVentes = ventesDuJour
 
   return (
     <div className="space-y-6 animate-fadeIn">

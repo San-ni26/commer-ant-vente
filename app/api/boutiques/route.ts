@@ -1,6 +1,6 @@
 // src/app/api/boutiques/route.ts
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { prisma, avecRetry } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { z } from "zod"
 
@@ -20,33 +20,31 @@ export async function GET() {
       )
     }
 
-    const boutiques = await prisma.boutique.findMany({
-      where: {
-        commercantId: session.user.id
-      },
-      include: {
-        gerant: {
-          select: {
-            id: true,
-            nom: true,
-            prenom: true,
-            email: true,
+    const boutiques = await avecRetry(() =>
+      prisma.boutique.findMany({
+        where: { commercantId: session.user.id },
+        select: {
+          id: true,
+          nom: true,
+          solde: true,
+          gerantId: true,
+          dateCreation: true,
+          gerant: {
+            select: { id: true, nom: true, prenom: true, email: true }
+          },
+          _count: {
+            select: { ventes: true, employes: true }
           }
         },
-        _count: {
-          select: {
-            ventes: true,
-            transactions: true,
-            employes: true,
-          }
-        }
-      },
-      orderBy: {
-        dateCreation: 'desc'
+        orderBy: { dateCreation: 'desc' }
+      })
+    )
+
+    return NextResponse.json(boutiques, {
+      headers: {
+        'Cache-Control': 'private, max-age=30, stale-while-revalidate=60'
       }
     })
-
-    return NextResponse.json(boutiques)
   } catch (erreur) {
     console.error("Erreur lors de la récupération des boutiques:", erreur)
     return NextResponse.json(

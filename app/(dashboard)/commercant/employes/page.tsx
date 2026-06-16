@@ -11,38 +11,30 @@ export default async function PageEmployes() {
     redirect("/connexion")
   }
 
-  // Faire les requêtes séparément (pas de Promise.all qui peut causer des problèmes)
-  let employes: any[] = []
-  let boutiques: any[] = []
-
-  try {
-    employes = await prisma.employe.findMany({
+  // Les deux requêtes en parallèle
+  const [employes, boutiques] = await Promise.all([
+    prisma.employe.findMany({
       where: {
-        boutique: {
-          commercantId: session.user.id
-        }
+        boutique: { commercantId: session.user.id }
       },
       include: {
-        boutique: {
-          select: { id: true, nom: true }
-        }
+        boutique: { select: { id: true, nom: true } }
       },
       orderBy: { dateCreation: 'desc' },
       take: 50
-    })
-  } catch (e) {
-    console.error("Erreur chargement employés:", e)
-  }
-
-  try {
-    boutiques = await prisma.boutique.findMany({
+    }).catch((e): { id: string; nom: string; prenom: string | null; telephone: string; code: string; boutiqueId: string | null; boutique: { id: string; nom: string } | null }[] => {
+      console.error("Erreur chargement employés:", e)
+      return []
+    }),
+    prisma.boutique.findMany({
       where: { commercantId: session.user.id },
       select: { id: true, nom: true },
       take: 50
+    }).catch((e): { id: string; nom: string }[] => {
+      console.error("Erreur chargement boutiques:", e)
+      return []
     })
-  } catch (e) {
-    console.error("Erreur chargement boutiques:", e)
-  }
+  ])
 
   return (
     <div className="space-y-6">

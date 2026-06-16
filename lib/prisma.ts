@@ -14,11 +14,10 @@ function createPool() {
   return new Pool({
     connectionString: process.env.DATABASE_URL!,
     // Ferme les connexions inactives AVANT que le pooler (PgBouncer) ne les coupe
-    // pooled.db.prisma.io utilise PgBouncer en mode transactionnel
-    idleTimeoutMillis: 10_000,      // 10 s (PgBouncer coupe après ~30 s par défaut)
-    connectionTimeoutMillis: 10_000, // timeout d'acquisition d'une connexion
+    idleTimeoutMillis: 20_000,       // 20 s (marge confortable sous les 30 s de PgBouncer)
+    connectionTimeoutMillis: 5_000,  // 5 s → échec rapide + retry immédiat
     max: 5,                          // limite les connexions simultanées
-    keepAlive: true,                 // envoie des TCP keep-alives pour éviter ECONNRESET
+    keepAlive: true,
     keepAliveInitialDelayMillis: 5_000,
   })
 }
@@ -53,7 +52,19 @@ export async function avecRetry<T>(
       return await fn()
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code
-      if (code === 'P1017' || code === 'P1001') {
+      const message = (err as { message?: string })?.message || ""
+      
+      const estErreurConnexion = 
+        code === 'P1017' || 
+        code === 'P1001' || 
+        message.includes("Connection terminated") ||
+        message.includes("connection timeout") ||
+        message.includes("unexpectedly") ||
+        message.includes("timeout") ||
+        message.includes("ECONNRESET") ||
+        message.includes("socket hang up")
+
+      if (estErreurConnexion) {
         // Erreur de connexion transitoire → on attend et on réessaie
         dernierreErreur = err
         if (i < tentatives - 1) {

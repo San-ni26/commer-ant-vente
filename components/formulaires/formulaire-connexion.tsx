@@ -10,6 +10,14 @@ import { toast } from "sonner"
 import {
     Mail, Lock, Phone, Key, Loader2, User, Building2
 } from "lucide-react"
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogDescription,
+} from "@/components/ui/dialog"
 
 export function FormulaireConnexion() {
     const [mode, setMode] = useState<"commercant" | "employe">("commercant")
@@ -18,6 +26,38 @@ export function FormulaireConnexion() {
     // Commerçant
     const [email, setEmail] = useState("")
     const [motDePasse, setMotDePasse] = useState("")
+
+    // Réinitialisation de mot de passe
+    const [openReset, setOpenReset] = useState(false)
+    const [emailReset, setEmailReset] = useState("")
+    const [chargementReset, setChargementReset] = useState(false)
+
+    const handleDemandeReset = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setChargementReset(true)
+
+        try {
+            const reponse = await fetch("/api/auth/reset-password/request", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: emailReset }),
+            })
+
+            const data = await reponse.json()
+
+            if (reponse.ok) {
+                toast.success(data.message || "Lien de réinitialisation envoyé !")
+                setOpenReset(false)
+                setEmailReset("")
+            } else {
+                toast.error(data.erreur || "Une erreur est survenue")
+            }
+        } catch {
+            toast.error("Erreur de connexion avec le serveur")
+        } finally {
+            setChargementReset(false)
+        }
+    }
 
     // Employé
     const [telephone, setTelephone] = useState("")
@@ -119,7 +159,49 @@ export function FormulaireConnexion() {
                     </div>
 
                     <div>
-                        <Label htmlFor="motDePasse">Mot de passe</Label>
+                        <div className="flex items-center justify-between">
+                            <Label htmlFor="motDePasse">Mot de passe</Label>
+                            
+                            <Dialog open={openReset} onOpenChange={setOpenReset}>
+                                <DialogTrigger asChild>
+                                    <button
+                                        type="button"
+                                        className="text-xs sm:text-sm font-medium text-blue-600 hover:text-blue-500 hover:underline transition-colors focus:outline-none cursor-pointer"
+                                    >
+                                        Mot de passe oublié ?
+                                    </button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[425px]">
+                                    <DialogHeader>
+                                        <DialogTitle>Mot de passe oublié</DialogTitle>
+                                        <DialogDescription>
+                                            Saisissez votre adresse e-mail. Si elle est enregistrée, vous recevrez un lien de réinitialisation.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <form onSubmit={handleDemandeReset} className="space-y-4 pt-4">
+                                        <div>
+                                            <Label htmlFor="emailReset">Adresse e-mail</Label>
+                                            <div className="relative mt-1.5">
+                                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                                <Input
+                                                    id="emailReset"
+                                                    type="email"
+                                                    required
+                                                    value={emailReset}
+                                                    onChange={(e) => setEmailReset(e.target.value)}
+                                                    placeholder="exemple@email.com"
+                                                    className="pl-10 h-11"
+                                                />
+                                            </div>
+                                        </div>
+                                        <Button type="submit" className="w-full h-11" disabled={chargementReset}>
+                                            {chargementReset ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                                            Envoyer le lien de réinitialisation
+                                        </Button>
+                                    </form>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
                         <div className="relative mt-1.5">
                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                             <Input
