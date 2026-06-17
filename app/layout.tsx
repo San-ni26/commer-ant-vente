@@ -31,11 +31,12 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+
   return (
     <html lang="fr" className={poppins.variable}>
       <body className={poppins.className}>

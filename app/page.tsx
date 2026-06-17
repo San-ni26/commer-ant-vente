@@ -3,8 +3,15 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Store, Users, TrendingUp, Shield, ArrowRight } from "lucide-react"
+import { redirect } from "next/navigation"
+import { auth } from "@/lib/auth"
 
-export default function PageAccueil() {
+export default async function PageAccueil() {
+  const session = await auth()
+
+  if (session?.user) {
+    redirect("/commercant")
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col justify-between">
       <div>
