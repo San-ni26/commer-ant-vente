@@ -1,4 +1,4 @@
-// src/app/layout.tsx
+// app/layout.tsx
 import type { Metadata, Viewport } from "next"
 import { Poppins } from "next/font/google"
 import "./globals.css"
@@ -6,11 +6,14 @@ import { Toaster } from "sonner"
 import { AuthProvider } from "@/components/providers/auth-provider"
 import { PWARegister } from "@/components/shared/pwa-register"
 
+// Seulement les poids réellement utilisés (au lieu de 100→900)
+// Réduit le bundle font d'environ 60%
 const poppins = Poppins({
   subsets: ["latin"],
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
+  weight: ["400", "600", "700"],
   display: "swap",
   variable: "--font-poppins",
+  preload: true,
 })
 
 export const viewport: Viewport = {
@@ -22,23 +25,38 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: "Commerce Vente - Gestion Commerciale",
+  title: {
+    default: "Commerce Vente - Gestion Commerciale",
+    template: "%s | Commerce Vente",
+  },
   description: "Digitalisez votre commerce en toute simplicité",
+  metadataBase: new URL(
+    process.env.NEXTAUTH_URL || "http://localhost:3000"
+  ),
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "Commerce Vente",
   },
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/icon-192x192.png",
+  },
 }
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-
   return (
     <html lang="fr" className={poppins.variable}>
+      <head>
+        {/* Préconnexion Google Fonts pour réduire la latence */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
       <body className={poppins.className}>
         <AuthProvider>
           <PWARegister />
