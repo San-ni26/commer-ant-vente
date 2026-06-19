@@ -27,18 +27,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // ── Page d'accueil (/) : redirect vers le bon dashboard si connecté
+  // ── Page d'accueil (/) : redirect vers /commercant si connecté
   if (path === "/") {
-    if (!isLoggedIn) return NextResponse.next()
-
-    if (role === "ADMIN") {
-      return NextResponse.redirect(new URL("/admin", request.url))
+    if (isLoggedIn) {
+      return NextResponse.redirect(new URL("/commercant", request.url))
     }
-    if (role === "EMPLOYE") {
-      return NextResponse.redirect(new URL("/employe", request.url))
-    }
-    // COMMERCANT par défaut
-    return NextResponse.redirect(new URL("/commercant", request.url))
+    return NextResponse.next()
   }
 
   // ── Routes protégées : redirection si pas connecté
