@@ -1,7 +1,6 @@
 // src/components/boutiques/details-boutique.tsx
 "use client"
 
-import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -32,36 +31,7 @@ interface BoutiqueDetail {
   }
 }
 
-export function DetailsBoutique({ boutiqueId }: { boutiqueId: string }) {
-  const [boutique, setBoutique] = useState<BoutiqueDetail | null>(null)
-  const [chargement, setChargement] = useState(true)
-
-  useEffect(() => {
-    chargerBoutique()
-  }, [boutiqueId])
-
-  const chargerBoutique = async () => {
-    try {
-      setChargement(true)
-      const reponse = await fetch(`/api/boutiques/${boutiqueId}`)
-      if (!reponse.ok) throw new Error("Erreur de chargement")
-      const donnees = await reponse.json()
-      setBoutique(donnees)
-    } catch (erreur) {
-      console.error("Erreur:", erreur)
-    } finally {
-      setChargement(false)
-    }
-  }
-
-  if (chargement) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Chargement...</div>
-      </div>
-    )
-  }
-
+export function DetailsBoutique({ boutique }: { boutique: BoutiqueDetail }) {
   if (!boutique) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -97,13 +67,13 @@ export function DetailsBoutique({ boutiqueId }: { boutiqueId: string }) {
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <Link href={`/commercant/boutiques/${boutiqueId}/ventes`} className="w-full sm:w-auto">
+        <Link href={`/commercant/boutiques/${boutique.id}/ventes`} className="w-full sm:w-auto">
           <Button className="w-full sm:w-auto">
             <DollarSign className="h-4 w-4 mr-2" />
             Voir les Ventes
           </Button>
         </Link>
-        <Link href={`/commercant/boutiques/${boutiqueId}/transactions`} className="w-full sm:w-auto">
+        <Link href={`/commercant/boutiques/${boutique.id}/transactions`} className="w-full sm:w-auto">
           <Button variant="outline" className="w-full sm:w-auto">
             <TrendingUp className="h-4 w-4 mr-2" />
             Voir les Transactions
