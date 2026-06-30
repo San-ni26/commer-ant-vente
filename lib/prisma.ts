@@ -62,7 +62,9 @@ export async function avecRetry<T>(
         message.includes("unexpectedly") ||
         message.includes("timeout") ||
         message.includes("ECONNRESET") ||
-        message.includes("socket hang up")
+        message.includes("socket hang up") ||
+        message.includes("Failed to connect to upstream database") ||
+        message.includes("upstream database")
 
       if (estErreurConnexion) {
         // Erreur de connexion transitoire → on attend et on réessaie

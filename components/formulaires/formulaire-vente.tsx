@@ -17,8 +17,11 @@ import { Plus, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 
-export function FormulaireVente({ boutiqueId }: { boutiqueId: string }) {
+import { useVentesOffline } from "@/hooks/use-ventes-offline"
+
+export function FormulaireVente({ boutiqueId, onVenteCreee }: { boutiqueId: string; onVenteCreee?: () => void }) {
     const router = useRouter()
+    const { creerVente } = useVentesOffline(boutiqueId)
     const [ouvert, setOuvert] = useState(false)
     const [chargement, setChargement] = useState(false)
     const [donnees, setDonnees] = useState({
@@ -37,23 +40,17 @@ export function FormulaireVente({ boutiqueId }: { boutiqueId: string }) {
         setChargement(true)
 
         try {
-            const reponse = await fetch(`/api/boutiques/${boutiqueId}/ventes`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    montant: parseFloat(donnees.montant),
-                    description: donnees.description || undefined,
-                }),
+            const result = await creerVente({
+                montant: parseFloat(donnees.montant),
+                description: donnees.description || undefined,
+                boutiqueId,
             })
 
-            if (reponse.ok) {
-                toast.success("Vente enregistrée avec succès")
+            if (result) {
                 setOuvert(false)
                 setDonnees({ montant: "", description: "" })
+                if (onVenteCreee) onVenteCreee()
                 router.refresh()
-            } else {
-                const erreur = await reponse.json()
-                toast.error(erreur.erreur || "Erreur lors de l'enregistrement")
             }
         } catch (erreur) {
             toast.error("Erreur de connexion")

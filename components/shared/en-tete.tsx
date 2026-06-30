@@ -2,11 +2,12 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Bell, LogOut, User, Store } from "lucide-react"
+import { Bell, LogOut, Store } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
+import { SyncStatusBadge } from "./sync-status-badge"
 
 interface EnTeteProps {
   onMenuClick: () => void // Reste pour la compatibilité desktop si besoin, mais inutilisé sur mobile
@@ -72,6 +73,9 @@ export function EnTete({ user }: EnTeteProps) {
 
           {/* Actions à droite */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Badge de synchronisation offline */}
+            <SyncStatusBadge />
+
             <Button variant="ghost" size="icon" className="relative hover:bg-gray-100 rounded-full transition-colors">
               <Bell className="h-5 w-5 text-gray-600" />
               <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full" />

@@ -6,10 +6,19 @@ import { toast } from "sonner"
 
 export function PWARegister() {
   useEffect(() => {
-    // Ne pas enregistrer le SW en développement
-    // → évite les boucles de réinstallation causées par HMR
-    if (process.env.NODE_ENV !== "production") return
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return
+
+    // En développement, désactiver le Service Worker pour éviter d'intercepter les chunks Turbopack / HMR
+    if (process.env.NODE_ENV === "development") {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const reg of registrations) {
+          reg.unregister().then(() => {
+            console.log("[SW] Désenregistré en développement pour éviter les conflits HMR")
+          })
+        }
+      })
+      return
+    }
 
     let registration: ServiceWorkerRegistration | null = null
 
@@ -50,9 +59,15 @@ export function PWARegister() {
           })
         })
 
-        // Recharger proprement quand le nouveau SW prend le contrôle
+        // Recharger proprement uniquement si un contrôleur existait déjà (évite la boucle de reload)
+        const hasController = !!navigator.serviceWorker.controller
+        let refreshing = false
         navigator.serviceWorker.addEventListener("controllerchange", () => {
-          window.location.reload()
+          if (refreshing) return
+          refreshing = true
+          if (hasController) {
+            window.location.reload()
+          }
         })
 
         return () => clearInterval(intervalId)

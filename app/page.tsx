@@ -5,11 +5,12 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Store, Users, TrendingUp, Shield, ArrowRight } from "lucide-react"
+import { RedirectIfLoggedIn } from "@/components/shared/redirect-if-logged-in"
 
 export const metadata: Metadata = {
   title: "Commerce Vente — Digitalisez votre commerce",
   description:
-    "Gérez vos ventes, boutiques et employés depuis une seule plateforme. Suivez votre activité en temps réel.",
+    "Gérer vos ventes, boutiques et employés depuis une seule plateforme. Suivez votre activité en temps réel.",
   openGraph: {
     title: "Commerce Vente — Digitalisez votre commerce",
     description:
@@ -25,6 +26,7 @@ export const dynamic = "force-static"
 export default function PageAccueil() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col justify-between">
+      <RedirectIfLoggedIn />
       <div>
         {/* En-tête */}
         <header className="bg-white shadow-sm">

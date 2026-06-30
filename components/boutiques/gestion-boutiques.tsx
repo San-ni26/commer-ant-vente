@@ -22,7 +22,6 @@ import { useRouter } from "next/navigation"
 import { differenceInDays } from "date-fns"
 import { cn } from "@/lib/utils"
 
-// Type assoupli pour compatibilité Prisma
 type Boutique = {
     id: string
     nom: string
@@ -35,6 +34,7 @@ type Boutique = {
 
 interface GestionBoutiquesProps {
     boutiques: Boutique[]
+    onRefresh?: () => void
 }
 
 // ─── Badge abonnement par boutique ───────────────────────────────────────────
@@ -102,7 +102,7 @@ function BanniereBloquees({ nombre }: { nombre: number }) {
     )
 }
 
-export function GestionBoutiques({ boutiques }: GestionBoutiquesProps) {
+export function GestionBoutiques({ boutiques, onRefresh }: GestionBoutiquesProps) {
     const router = useRouter()
     const [ouvertCreer, setOuvertCreer] = useState(false)
     const [ouvertEdit, setOuvertEdit] = useState(false)
@@ -123,7 +123,7 @@ export function GestionBoutiques({ boutiques }: GestionBoutiquesProps) {
                 toast.success("Boutique créée")
                 setOuvertCreer(false)
                 setDonnees({ nom: "" })
-                router.refresh()
+                onRefresh ? onRefresh() : router.refresh()
             } else {
                 toast.error("Erreur lors de la création")
             }
@@ -147,7 +147,7 @@ export function GestionBoutiques({ boutiques }: GestionBoutiquesProps) {
             if (reponse.ok) {
                 toast.success("Boutique modifiée")
                 setOuvertEdit(false)
-                router.refresh()
+                onRefresh ? onRefresh() : router.refresh()
             } else {
                 toast.error("Erreur lors de la modification")
             }
@@ -164,7 +164,7 @@ export function GestionBoutiques({ boutiques }: GestionBoutiquesProps) {
             const reponse = await fetch(`/api/boutiques/${id}`, { method: "DELETE" })
             if (reponse.ok) {
                 toast.success("Boutique supprimée")
-                router.refresh()
+                onRefresh ? onRefresh() : router.refresh()
             } else {
                 toast.error("Erreur lors de la suppression")
             }

@@ -44,10 +44,12 @@ interface Boutique {
 
 export function GestionEmployes({
     employes,
-    boutiques
+    boutiques,
+    onRefresh,
 }: {
     employes: Employe[]
     boutiques: Boutique[]
+    onRefresh?: () => void
 }) {
     const router = useRouter()
     const [ouvert, setOuvert] = useState(false)
@@ -75,7 +77,7 @@ export function GestionEmployes({
                 toast.success("Employé créé avec succès")
                 setOuvert(false)
                 setDonnees({ nom: "", prenom: "", telephone: "", boutiqueId: "" })
-                router.refresh()
+                onRefresh ? onRefresh() : router.refresh()
             } else {
                 const erreur = await reponse.json()
                 toast.error(erreur.erreur || "Erreur")
@@ -94,7 +96,7 @@ export function GestionEmployes({
             const reponse = await fetch(`/api/employes?id=${id}`, { method: "DELETE" })
             if (reponse.ok) {
                 toast.success("Employé supprimé")
-                router.refresh()
+                onRefresh ? onRefresh() : router.refresh()
             }
         } catch (erreur) {
             toast.error("Erreur lors de la suppression")

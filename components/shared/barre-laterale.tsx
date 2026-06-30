@@ -1,6 +1,7 @@
 // src/components/shared/barre-laterale.tsx
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -29,6 +30,11 @@ interface BarreLateraleProps {
 
 export function BarreLaterale({ onClose, user }: BarreLateraleProps) {
   const pathname = usePathname()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const navigation = {
     ADMIN: [
@@ -78,7 +84,12 @@ export function BarreLaterale({ onClose, user }: BarreLateraleProps) {
       {/* Navigation */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {liens.map((lien) => {
-          const estActif = pathname === lien.href || pathname.startsWith(lien.href + "/")
+          const path = pathname.endsWith("/") && pathname !== "/" ? pathname.slice(0, -1) : pathname
+          const linkPath = lien.href.endsWith("/") && lien.href !== "/" ? lien.href.slice(0, -1) : lien.href
+
+          const estActif = mounted && (["/admin", "/commercant", "/employe"].includes(linkPath)
+            ? path === linkPath
+            : path === linkPath || path.startsWith(linkPath + "/"))
 
           return (
             <Link

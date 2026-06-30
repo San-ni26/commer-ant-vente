@@ -152,13 +152,33 @@ export async function DELETE(
 
     const { id } = await context.params
 
-    await avecRetry(() =>
-      prisma.boutique.delete({
+    // Vérifier d'abord que la boutique appartient bien au commerçant
+    const boutique = await avecRetry(() =>
+      prisma.boutique.findFirst({
         where: {
           id: id,
           commercantId: session.user.id
         }
       })
+    )
+
+    if (!boutique) {
+      return NextResponse.json(
+        { erreur: "Boutique non trouvée ou accès non autorisé" },
+        { status: 404 }
+      )
+    }
+
+    await avecRetry(() =>
+      prisma.$transaction([
+        prisma.abonnement.deleteMany({ where: { boutiqueId: id } }),
+        prisma.vente.deleteMany({ where: { boutiqueId: id } }),
+        prisma.transaction.deleteMany({ where: { boutiqueId: id } }),
+        prisma.employe.deleteMany({ where: { boutiqueId: id } }),
+        prisma.boutique.delete({
+          where: { id: id }
+        })
+      ])
     )
 
     return NextResponse.json({ message: "Boutique supprimée" })

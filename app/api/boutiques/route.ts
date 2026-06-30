@@ -20,27 +20,51 @@ export async function GET() {
       )
     }
 
+    // Expirer les abonnements dépassés
+    await avecRetry(() =>
+      prisma.abonnement.updateMany({
+        where: {
+          commercantId: session.user.id,
+          statut: "ACTIF",
+          dateFin: { lt: new Date() },
+        },
+        data: { statut: "EXPIRE" },
+      })
+    )
+
     const boutiques = await avecRetry(() =>
       prisma.boutique.findMany({
         where: { commercantId: session.user.id },
-        select: {
-          id: true,
-          nom: true,
-          solde: true,
-          gerantId: true,
-          dateCreation: true,
-          gerant: {
-            select: { id: true, nom: true, prenom: true, email: true }
+        include: {
+          _count: { select: { ventes: true, employes: true } },
+          gerant: { select: { id: true, nom: true, prenom: true, email: true } },
+          abonnements: {
+            where: { statut: "ACTIF", dateFin: { gte: new Date() } },
+            orderBy: { dateFin: "desc" },
+            take: 1,
+            select: { id: true, dateFin: true, duree: true, statut: true },
           },
-          _count: {
-            select: { ventes: true, employes: true }
-          }
         },
         orderBy: { dateCreation: 'desc' }
       })
     )
 
-    return NextResponse.json(boutiques, {
+    const boutiquesAvecStatut = boutiques.map((b) => {
+      const abo = b.abonnements[0] ?? null
+      return {
+        id: b.id,
+        nom: b.nom,
+        solde: b.solde,
+        gerantId: b.gerantId,
+        dateCreation: b.dateCreation,
+        gerant: b.gerant,
+        _count: b._count,
+        abonnement: abo ? { dateFin: abo.dateFin.toISOString(), duree: abo.duree } : null,
+        abonnementActif: abo !== null,
+      }
+    })
+
+    return NextResponse.json(boutiquesAvecStatut, {
       headers: {
         'Cache-Control': 'private, max-age=30, stale-while-revalidate=60'
       }

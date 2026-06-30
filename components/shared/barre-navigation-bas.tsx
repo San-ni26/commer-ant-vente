@@ -1,6 +1,7 @@
 // src/components/shared/barre-navigation-bas.tsx
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -21,6 +22,11 @@ interface BarreNavigationBasProps {
 
 export function BarreNavigationBas({ user }: BarreNavigationBasProps) {
   const pathname = usePathname()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const navigation = {
     ADMIN: [
@@ -50,7 +56,12 @@ export function BarreNavigationBas({ user }: BarreNavigationBasProps) {
     <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-gray-200 shadow-lg px-2 py-1.5 pb-safe-bottom">
       <div className="flex justify-around items-center max-w-md mx-auto">
         {liens.map((lien) => {
-          const estActif = pathname === lien.href || pathname.startsWith(lien.href + "/")
+          const path = pathname.endsWith("/") && pathname !== "/" ? pathname.slice(0, -1) : pathname
+          const linkPath = lien.href.endsWith("/") && lien.href !== "/" ? lien.href.slice(0, -1) : lien.href
+
+          const estActif = mounted && (["/admin", "/commercant", "/employe"].includes(linkPath)
+            ? path === linkPath
+            : path === linkPath || path.startsWith(linkPath + "/"))
 
           return (
             <Link

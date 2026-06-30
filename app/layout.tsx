@@ -5,6 +5,8 @@ import "./globals.css"
 import { Toaster } from "sonner"
 import { AuthProvider } from "@/components/providers/auth-provider"
 import { PWARegister } from "@/components/shared/pwa-register"
+import { SyncProvider } from "@/components/providers/sync-provider"
+import { OfflineIndicator } from "@/components/shared/offline-indicator"
 
 // Seulement les poids réellement utilisés (au lieu de 100→900)
 // Réduit le bundle font d'environ 60%
@@ -59,9 +61,12 @@ export default function RootLayout({
       </head>
       <body className={poppins.className}>
         <AuthProvider>
-          <PWARegister />
-          {children}
-          <Toaster position="top-right" richColors />
+          <SyncProvider>
+            <PWARegister />
+            <OfflineIndicator />
+            {children}
+            <Toaster position="top-right" richColors />
+          </SyncProvider>
         </AuthProvider>
       </body>
     </html>

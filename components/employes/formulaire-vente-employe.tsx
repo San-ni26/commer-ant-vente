@@ -16,7 +16,13 @@ import { useRouter } from "next/navigation"
 
 const MONTANTS_RAPIDES = [500, 1000, 2000, 5000, 10000, 20000, 50000]
 
-export function FormulaireVenteEmploye({ boutiqueId }: { boutiqueId: string }) {
+export function FormulaireVenteEmploye({
+    boutiqueId,
+    onVenteCreee,
+}: {
+    boutiqueId: string
+    onVenteCreee?: () => void
+}) {
     const router = useRouter()
     const inputRef = useRef<HTMLInputElement>(null)
     const [chargement, setChargement] = useState(false)
@@ -59,7 +65,7 @@ export function FormulaireVenteEmploye({ boutiqueId }: { boutiqueId: string }) {
                 setSucces(true)
                 setDerniereVente(montant)
                 setDonnees({ montant: "", description: "" })
-                router.refresh()
+                onVenteCreee ? onVenteCreee() : router.refresh()
 
                 // Refocus sur le champ montant
                 setTimeout(() => {

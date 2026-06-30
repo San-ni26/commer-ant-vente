@@ -24,8 +24,11 @@ import { Plus, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 
-export function FormulaireTransaction({ boutiqueId }: { boutiqueId: string }) {
+import { useTransactionsOffline, type TypeTransaction } from "@/hooks/use-transactions-offline"
+
+export function FormulaireTransaction({ boutiqueId, onTransactionCreee }: { boutiqueId: string; onTransactionCreee?: () => void }) {
     const router = useRouter()
+    const { creerTransaction } = useTransactionsOffline(boutiqueId)
     const [ouvert, setOuvert] = useState(false)
     const [chargement, setChargement] = useState(false)
     const [donnees, setDonnees] = useState({
@@ -45,25 +48,18 @@ export function FormulaireTransaction({ boutiqueId }: { boutiqueId: string }) {
         setChargement(true)
 
         try {
-            const reponse = await fetch(`/api/boutiques/${boutiqueId}/transactions`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    type: donnees.type,
-                    montant: parseFloat(donnees.montant),
-                    description: donnees.description || undefined,
-                }),
+            const result = await creerTransaction({
+                type: donnees.type as TypeTransaction,
+                montant: parseFloat(donnees.montant),
+                description: donnees.description || undefined,
+                boutiqueId,
             })
 
-            const data = await reponse.json()
-
-            if (reponse.ok) {
-                toast.success("Transaction créée avec succès")
+            if (result) {
                 setOuvert(false)
                 setDonnees({ type: "VERSEMENT", montant: "", description: "" })
+                if (onTransactionCreee) onTransactionCreee()
                 router.refresh()
-            } else {
-                toast.error(data.erreur || "Erreur lors de la création")
             }
         } catch (erreur) {
             console.error("Erreur:", erreur)
