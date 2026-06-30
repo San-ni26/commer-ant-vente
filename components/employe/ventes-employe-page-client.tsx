@@ -68,11 +68,8 @@ export function VentesEmployePageClient() {
   const isOnline = useOnlineStatus()
   const { refreshCount } = useSyncStatus()
 
-  const [data, setData] = useState<EmployeData | null>(() => {
-    if (typeof window !== "undefined") return getFromSession()
-    return null
-  })
-  const [chargement, setChargement] = useState(!data)
+  const [data, setData] = useState<EmployeData | null>(null)
+  const [chargement, setChargement] = useState(true)
   const [source, setSource] = useState<"network" | "cache">("network")
 
   // Form state
@@ -82,8 +79,8 @@ export function VentesEmployePageClient() {
   const [succes, setSucces] = useState(false)
   const [derniereVente, setDerniereVente] = useState<number | null>(null)
 
-  const charger = useCallback(async () => {
-    setChargement(true)
+  const charger = useCallback(async (silent = false) => {
+    if (!silent) setChargement(true)
     try {
       const { data: d, source: src } = await fetchAvecCache<EmployeData>(
         "/api/employe/ventes",
@@ -155,11 +152,18 @@ export function VentesEmployePageClient() {
   }, [])
 
   useEffect(() => {
-    if (!data) charger()
-  }, [data, charger])
+    const cached = getFromSession()
+    if (cached) {
+      setData(cached)
+      setChargement(false)
+      charger(true) // Background update on page load
+    } else {
+      charger(false)
+    }
+  }, [charger])
 
   useEffect(() => {
-    if (isOnline && source === "cache") charger()
+    if (isOnline && source === "cache") charger(true)
   }, [isOnline, source, charger])
 
   // ─────────── Soumission de vente (online + offline) ───────────

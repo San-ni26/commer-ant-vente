@@ -108,16 +108,13 @@ async function saveLocalData(data: DashboardData): Promise<void> {
 }
 
 export function EmployeDashboardClient() {
-  const [data, setData] = useState<DashboardData | null>(() => {
-    if (typeof window !== "undefined") return getFromSession()
-    return null
-  })
-  const [chargement, setChargement] = useState(!data)
+  const [data, setData] = useState<DashboardData | null>(null)
+  const [chargement, setChargement] = useState(true)
   const [source, setSource] = useState<"network" | "cache">("network")
   const isOnline = useOnlineStatus()
 
-  const charger = useCallback(async () => {
-    setChargement(true)
+  const charger = useCallback(async (silent = false) => {
+    if (!silent) setChargement(true)
     try {
       const { data: d, source: src } = await fetchAvecCache<DashboardData>(
         "/api/employe/dashboard",
@@ -135,8 +132,22 @@ export function EmployeDashboardClient() {
     }
   }, [])
 
-  useEffect(() => { if (!data) charger() }, [data, charger])
-  useEffect(() => { if (isOnline && source === "cache") charger() }, [isOnline, source, charger])
+  useEffect(() => {
+    const cached = getFromSession()
+    if (cached) {
+      setData(cached)
+      setChargement(false)
+      charger(true) // Background update on page load
+    } else {
+      charger(false)
+    }
+  }, [charger])
+
+  useEffect(() => {
+    if (isOnline && source === "cache") {
+      charger(true)
+    }
+  }, [isOnline, source, charger])
 
   if (chargement && !data) {
     return (
