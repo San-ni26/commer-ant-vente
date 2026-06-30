@@ -8,8 +8,9 @@ import { useOnlineStatus } from "@/hooks/use-online-status"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
-  ShoppingCart, DollarSign, Calendar, Store, TrendingUp, Clock, Loader2, WifiOff,
+  ShoppingCart, DollarSign, Calendar, Store, TrendingUp, Clock, Loader2, WifiOff, Search,
 } from "lucide-react"
 import Link from "next/link"
 import { format } from "date-fns"
@@ -34,9 +35,9 @@ interface DashboardData {
 
 const EMPLOYE_DASH_CACHE_KEY = "employe_dash_data"
 
-function getFromSession(): DashboardData | null {
+function getFromSession(periode: string = "jour"): DashboardData | null {
   try {
-    const raw = sessionStorage.getItem(EMPLOYE_DASH_CACHE_KEY)
+    const raw = sessionStorage.getItem(`${EMPLOYE_DASH_CACHE_KEY}_${periode}`)
     if (!raw) return null
     const { data, ts } = JSON.parse(raw)
     // Cache valable 5 minutes
@@ -45,7 +46,7 @@ function getFromSession(): DashboardData | null {
   } catch { return null }
 }
 
-async function getLocalData(): Promise<DashboardData> {
+async function getLocalData(periode: string = "jour"): Promise<DashboardData> {
   try {
     const { getBoutiquesLocales, getVentesLocales } = await import("@/lib/offline/db")
     const boutiques = await getBoutiquesLocales()
@@ -54,10 +55,25 @@ async function getLocalData(): Promise<DashboardData> {
       return { employe: null, ventesDuJour: [], ventesMoisTotal: 0 }
     }
     const ventesLocales = await getVentesLocales(boutique.id)
-    const aujourdhui = new Date()
-    aujourdhui.setHours(0, 0, 0, 0)
+    
+    const aujourd = new Date()
+    aujourd.setHours(0, 0, 0, 0)
+    
+    let dateDebut = aujourd
+    if (periode === "semaine") {
+      const day = aujourd.getDay()
+      const diff = aujourd.getDate() - day + (day === 0 ? -6 : 1)
+      dateDebut = new Date(aujourd)
+      dateDebut.setDate(diff)
+      dateDebut.setHours(0, 0, 0, 0)
+    } else if (periode === "mois") {
+      dateDebut = new Date(aujourd.getFullYear(), aujourd.getMonth(), 1)
+    } else if (periode === "annee") {
+      dateDebut = new Date(aujourd.getFullYear(), 0, 1)
+    }
+
     const ventesDuJour = ventesLocales
-      .filter((v) => new Date(v.dateVente) >= aujourdhui)
+      .filter((v) => new Date(v.dateVente) >= dateDebut)
       .map((v) => ({
         id: v.id,
         montant: v.montant,
@@ -80,9 +96,9 @@ async function getLocalData(): Promise<DashboardData> {
   }
 }
 
-async function saveLocalData(data: DashboardData): Promise<void> {
+async function saveLocalData(data: DashboardData, periode: string = "jour"): Promise<void> {
   try {
-    sessionStorage.setItem(EMPLOYE_DASH_CACHE_KEY, JSON.stringify({ data, ts: Date.now() }))
+    sessionStorage.setItem(`${EMPLOYE_DASH_CACHE_KEY}_${periode}`, JSON.stringify({ data, ts: Date.now() }))
   } catch { /* quota */ }
   // Sauvegarder les ventes en IDB pour accès offline futur
   try {
@@ -107,24 +123,55 @@ async function saveLocalData(data: DashboardData): Promise<void> {
   }
 }
 
+const TITRES_PERIODES = {
+  jour: "Ventes du jour",
+  semaine: "Ventes de la semaine",
+  mois: "Ventes du mois",
+  annee: "Ventes de l'année",
+}
+
+const LABELS_STATS = {
+  jour: "Aujourd'hui",
+  semaine: "Cette semaine",
+  mois: "Ce mois",
+  annee: "Cette année",
+}
+
+const PERIODES = [
+  { id: "jour", label: "Jour" },
+  { id: "semaine", label: "Semaine" },
+  { id: "mois", label: "Mois" },
+  { id: "annee", label: "Année" },
+]
+
+const formatVenteDate = (dateStr: string, currentPeriode: string) => {
+  const d = new Date(dateStr)
+  if (currentPeriode === "jour") {
+    return format(d, "HH:mm", { locale: fr })
+  }
+  return format(d, "dd MMM yyyy, HH:mm", { locale: fr })
+}
+
 export function EmployeDashboardClient() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [chargement, setChargement] = useState(true)
   const [source, setSource] = useState<"network" | "cache">("network")
+  const [recherche, setRecherche] = useState("")
+  const [periode, setPeriode] = useState<"jour" | "semaine" | "mois" | "annee">("jour")
   const isOnline = useOnlineStatus()
 
-  const charger = useCallback(async (silent = false) => {
+  const charger = useCallback(async (per: string, silent = false) => {
     if (!silent) setChargement(true)
     try {
       const { data: d, source: src } = await fetchAvecCache<DashboardData>(
-        "/api/employe/dashboard",
-        getLocalData,
-        saveLocalData
+        `/api/employe/dashboard?periode=${per}`,
+        () => getLocalData(per),
+        (apiData) => saveLocalData(apiData, per)
       )
       setData(d)
       setSource(src)
     } catch {
-      const local = await getLocalData()
+      const local = await getLocalData(per)
       setData(local)
       setSource("cache")
     } finally {
@@ -133,21 +180,21 @@ export function EmployeDashboardClient() {
   }, [])
 
   useEffect(() => {
-    const cached = getFromSession()
+    const cached = getFromSession(periode)
     if (cached) {
       setData(cached)
       setChargement(false)
-      charger(true) // Background update on page load
+      charger(periode, true) // Background update on page load / period switch
     } else {
-      charger(false)
+      charger(periode, false)
     }
-  }, [charger])
+  }, [charger, periode])
 
   useEffect(() => {
     if (isOnline && source === "cache") {
-      charger(true)
+      charger(periode, true)
     }
-  }, [isOnline, source, charger])
+  }, [isOnline, source, charger, periode])
 
   if (chargement && !data) {
     return (
@@ -160,6 +207,17 @@ export function EmployeDashboardClient() {
   const { employe, ventesDuJour, ventesMoisTotal } = data ?? { employe: null, ventesDuJour: [], ventesMoisTotal: 0 }
   const boutique = employe?.boutique
   const totalAujourdhui = ventesDuJour.reduce((s, v) => s + v.montant, 0)
+
+  const ventesFiltrees = ventesDuJour.filter((vente) => {
+    if (!recherche) return true
+    const term = recherche.toLowerCase()
+    const descMatch = (vente.description || "").toLowerCase().includes(term)
+    const auteurMatch = vente.enregistrePar
+      ? `${vente.enregistrePar.prenom} ${vente.enregistrePar.nom}`.toLowerCase().includes(term)
+      : false
+    const montantMatch = vente.montant.toString().includes(term)
+    return descMatch || auteurMatch || montantMatch
+  })
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -215,7 +273,7 @@ export function EmployeDashboardClient() {
             <Card>
               <CardContent className="p-4 text-center">
                 <DollarSign className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                <p className="text-xs text-gray-500">Aujourd'hui</p>
+                <p className="text-xs text-gray-500">{LABELS_STATS[periode]}</p>
                 <p className="text-xl sm:text-2xl font-bold text-green-600">{totalAujourdhui.toFixed(0)} FCFA</p>
               </CardContent>
             </Card>
@@ -244,18 +302,52 @@ export function EmployeDashboardClient() {
 
           {/* Ventes du jour */}
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-blue-500" />
-                <CardTitle>Ventes du jour — {boutique.nom}</CardTitle>
+            <CardHeader className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full lg:w-auto">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-blue-500" />
+                  <CardTitle>{TITRES_PERIODES[periode]} — {boutique.nom}</CardTitle>
+                </div>
+                {/* Sélecteur de période */}
+                <div className="flex bg-gray-100 p-0.5 rounded-lg border text-xs w-fit shrink-0">
+                  {PERIODES.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        setRecherche("") // effacer la recherche pour éviter la confusion
+                        setPeriode(p.id as any)
+                      }}
+                      className={`px-3 py-1.5 rounded-md font-medium transition-all ${
+                        periode === p.id
+                          ? "bg-white text-gray-900 shadow-sm"
+                          : "text-gray-500 hover:text-gray-900"
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <Badge variant="default">{ventesDuJour.length} vente(s)</Badge>
+              <div className="flex items-center gap-2 w-full lg:w-auto">
+                {ventesDuJour.length > 0 && (
+                  <div className="relative flex-1 lg:w-64">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Rechercher une vente..."
+                      value={recherche}
+                      onChange={(e) => setRecherche(e.target.value)}
+                      className="pl-8 h-9 text-sm"
+                    />
+                  </div>
+                )}
+                <Badge variant="default" className="shrink-0">{ventesFiltrees.length} vente(s)</Badge>
+              </div>
             </CardHeader>
             <CardContent>
               {ventesDuJour.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <Clock className="h-10 w-10 mx-auto mb-3 text-gray-300" />
-                  <p>Aucune vente enregistrée aujourd'hui</p>
+                  <p>Aucune vente enregistrée pour cette période</p>
                   <Link href="/employe/ventes" className="mt-4 inline-block">
                     <Button variant="outline" size="sm">
                       <ShoppingCart className="h-4 w-4 mr-2" />
@@ -263,14 +355,22 @@ export function EmployeDashboardClient() {
                     </Button>
                   </Link>
                 </div>
+              ) : ventesFiltrees.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Search className="h-10 w-10 mx-auto mb-3 text-gray-300" />
+                  <p>Aucune vente ne correspond à &quot;{recherche}&quot;</p>
+                  <Button variant="ghost" size="sm" onClick={() => setRecherche("")} className="mt-2 text-blue-600 hover:text-blue-700">
+                    Effacer la recherche
+                  </Button>
+                </div>
               ) : (
                 <div className="space-y-2">
-                  {ventesDuJour.map((vente) => (
+                  {ventesFiltrees.map((vente) => (
                     <div key={vente.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                       <div>
                         <p className="font-medium text-sm">{vente.description || "Vente"}</p>
                         <p className="text-xs text-gray-500">
-                          {format(new Date(vente.dateVente), "HH:mm", { locale: fr })}
+                          {formatVenteDate(vente.dateVente, periode)}
                           {vente.enregistrePar && (
                             <> • par {vente.enregistrePar.prenom} {vente.enregistrePar.nom}</>
                           )}
