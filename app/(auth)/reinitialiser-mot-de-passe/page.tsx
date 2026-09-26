@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { Lock, Key, Loader2, Store, CheckCircle, AlertCircle } from "lucide-react"
+import { Lock, Key, Loader2, Store, CheckCircle, AlertCircle, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 
 function FormulaireReinitialisation() {
@@ -19,8 +19,9 @@ function FormulaireReinitialisation() {
     const [confirmationMotDePasse, setConfirmationMotDePasse] = useState("")
     const [chargement, setChargement] = useState(false)
     const [succes, setSucces] = useState(false)
+    const [afficherNouveauMdp, setAfficherNouveauMdp] = useState(false)
+    const [afficherConfirmation, setAfficherConfirmation] = useState(false)
 
-    // Redirection automatique en cas de succès
     useEffect(() => {
         if (succes) {
             const timer = setTimeout(() => {
@@ -113,13 +114,21 @@ function FormulaireReinitialisation() {
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
                         id="nouveauMotDePasse"
-                        type="password"
+                        type={afficherNouveauMdp ? "text" : "password"}
                         required
                         value={nouveauMotDePasse}
                         onChange={(e) => setNouveauMotDePasse(e.target.value)}
                         placeholder="Au moins 8 caractères"
-                        className="pl-10 h-11"
+                        className="pl-10 pr-10 h-11"
                     />
+                    <button
+                        type="button"
+                        onClick={() => setAfficherNouveauMdp(!afficherNouveauMdp)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                        aria-label={afficherNouveauMdp ? "Masquer" : "Afficher"}
+                    >
+                        {afficherNouveauMdp ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                 </div>
             </div>
 
@@ -129,13 +138,21 @@ function FormulaireReinitialisation() {
                     <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
                         id="confirmationMotDePasse"
-                        type="password"
+                        type={afficherConfirmation ? "text" : "password"}
                         required
                         value={confirmationMotDePasse}
                         onChange={(e) => setConfirmationMotDePasse(e.target.value)}
                         placeholder="Répétez le mot de passe"
-                        className="pl-10 h-11"
+                        className="pl-10 pr-10 h-11"
                     />
+                    <button
+                        type="button"
+                        onClick={() => setAfficherConfirmation(!afficherConfirmation)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                        aria-label={afficherConfirmation ? "Masquer" : "Afficher"}
+                    >
+                        {afficherConfirmation ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                 </div>
             </div>
 

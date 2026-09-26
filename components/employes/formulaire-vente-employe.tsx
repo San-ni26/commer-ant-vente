@@ -13,6 +13,10 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import { formatMontant } from "@/lib/utils"
+import { mutationOffline } from "@/lib/offline/fetch-offline"
+import { saveVenteLocale } from "@/lib/offline/db"
+import { useOnlineStatus } from "@/hooks/use-online-status"
 
 const MONTANTS_RAPIDES = [500, 1000, 2000, 5000, 10000, 20000, 50000]
 
@@ -24,6 +28,7 @@ export function FormulaireVenteEmploye({
     onVenteCreee?: () => void
 }) {
     const router = useRouter()
+    const isOnline = useOnlineStatus()
     const inputRef = useRef<HTMLInputElement>(null)
     const [chargement, setChargement] = useState(false)
     const [succes, setSucces] = useState(false)
@@ -50,37 +55,44 @@ export function FormulaireVenteEmploye({
         setChargement(true)
         setSucces(false)
 
-        try {
-            const reponse = await fetch(`/api/boutiques/${boutiqueId}/ventes`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    montant,
-                    description: donnees.description || undefined,
-                }),
-            })
+        const idTemp = `temp_ev_${Date.now()}_${Math.random().toString(36).slice(2)}`
+        const body = { montant, description: donnees.description || undefined }
 
-            if (reponse.ok) {
-                toast.success(`Vente de ${montant.toLocaleString()} FCFA enregistrée !`)
-                setSucces(true)
-                setDerniereVente(montant)
-                setDonnees({ montant: "", description: "" })
-                onVenteCreee ? onVenteCreee() : router.refresh()
+        const result = await mutationOffline({
+            url: `/api/boutiques/${boutiqueId}/ventes`,
+            method: 'POST',
+            body,
+            tag: 'vente:creer',
+            localId: idTemp,
+            donneeLocale: idTemp,
+            onOffline: () => {
+                toast.warning(`Vente de ${formatMontant(montant)} enregistrée localement`, {
+                    description: 'Elle sera synchronisée dès la reconnexion.',
+                    duration: 5000,
+                })
+            },
+            onSuccess: async (data: any) => {
+                await saveVenteLocale({ ...data, syncedAt: Date.now() })
+            },
+        })
 
-                // Refocus sur le champ montant
-                setTimeout(() => {
-                    inputRef.current?.focus()
-                    setSucces(false)
-                }, 1500)
-            } else {
-                const erreur = await reponse.json()
-                toast.error(erreur.erreur || "Erreur lors de l'enregistrement")
+        if (result.ok) {
+            setSucces(true)
+            setDerniereVente(montant)
+            setDonnees({ montant: '', description: '' })
+            if (result.source === 'network') {
+                toast.success(`Vente de ${formatMontant(montant)} enregistrée !`)
             }
-        } catch (erreur) {
-            toast.error("Erreur de connexion")
-        } finally {
-            setChargement(false)
+            onVenteCreee ? onVenteCreee() : router.refresh()
+            setTimeout(() => {
+                inputRef.current?.focus()
+                setSucces(false)
+            }, 1500)
+        } else {
+            toast.error(result.error || "Erreur lors de l'enregistrement")
         }
+
+        setChargement(false)
     }
 
     const montantRapide = (montant: number) => {
@@ -105,7 +117,7 @@ export function FormulaireVenteEmploye({
                         <>
                             <CheckCircle className="h-5 w-5 text-green-500 animate-bounce" />
                             <span className="text-green-700">
-                                Vente de {derniereVente?.toLocaleString()} FCFA enregistrée !
+                                Vente de {derniereVente ? formatMontant(derniereVente) : ""} enregistrée !
                             </span>
                         </>
                     ) : (
@@ -134,7 +146,7 @@ export function FormulaireVenteEmploye({
                                     onClick={() => montantRapide(montant)}
                                     className="text-xs sm:text-sm"
                                 >
-                                    {montant.toLocaleString()}
+                                    {formatMontant(montant, { decimales: false })}
                                 </Button>
                             ))}
                         </div>

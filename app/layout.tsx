@@ -28,17 +28,17 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: "Commerce Vente - Gestion Commerciale",
-    template: "%s | Commerce Vente",
+    default: "Kephalé BS - Gestion Commerciale",
+    template: "%s | Kephalé BS",
   },
-  description: "Digitalisez votre commerce en toute simplicité",
+  description: "Kephalé BS — Business Sales, gérez votre commerce en toute simplicité",
   metadataBase: new URL(
     process.env.NEXTAUTH_URL || "http://localhost:3000"
   ),
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Commerce Vente",
+    title: "Kephalé BS",
   },
   manifest: "/manifest.webmanifest",
   icons: {

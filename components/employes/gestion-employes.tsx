@@ -24,6 +24,8 @@ import {
 import { Plus, Trash2, Copy, Check, Loader2, User, Store, Phone } from "lucide-react"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import { mutationOffline } from "@/lib/offline/fetch-offline"
+import { saveEmployeLocal, deleteEmployeLocal } from "@/lib/offline/db"
 
 interface Employe {
     id: string
@@ -52,6 +54,7 @@ export function GestionEmployes({
     onRefresh?: () => void
 }) {
     const router = useRouter()
+    const [listeEmployes, setListeEmployes] = useState<Employe[]>(employes)
     const [ouvert, setOuvert] = useState(false)
     const [chargement, setChargement] = useState(false)
     const [donnees, setDonnees] = useState({
@@ -66,41 +69,79 @@ export function GestionEmployes({
         e.preventDefault()
         setChargement(true)
 
-        try {
-            const reponse = await fetch("/api/employes", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(donnees),
-            })
-
-            if (reponse.ok) {
-                toast.success("Employé créé avec succès")
-                setOuvert(false)
-                setDonnees({ nom: "", prenom: "", telephone: "", boutiqueId: "" })
-                onRefresh ? onRefresh() : router.refresh()
-            } else {
-                const erreur = await reponse.json()
-                toast.error(erreur.erreur || "Erreur")
-            }
-        } catch (erreur) {
-            toast.error("Erreur de connexion")
-        } finally {
-            setChargement(false)
+        const idTemp = `temp_employe_${Date.now()}`
+        const boutique = boutiques.find(b => b.id === donnees.boutiqueId) || null
+        const employeTmp: Employe = {
+            id: idTemp,
+            nom: donnees.nom,
+            prenom: donnees.prenom || null,
+            telephone: donnees.telephone,
+            code: '????',
+            boutique,
         }
+
+        const result = await mutationOffline({
+            url: '/api/employes',
+            method: 'POST',
+            body: donnees,
+            tag: 'employe:creer',
+            localId: idTemp,
+            donneeLocale: employeTmp,
+            onOffline: (emp) => {
+                setListeEmployes((prev) => [...prev, emp])
+                toast.warning('Employé enregistré localement — synchronisation dès la reconnexion')
+            },
+            onSuccess: async (data: any) => {
+                await saveEmployeLocal({ ...data, syncedAt: Date.now() })
+            },
+        })
+
+        if (result.source === 'network') {
+            if (result.ok) {
+                const data = result.data as any
+                setListeEmployes((prev) => [...prev, { ...employeTmp, id: data.id, code: data.code }])
+                toast.success('Employé créé avec succès')
+            } else {
+                toast.error(result.error || 'Erreur lors de la création')
+                setChargement(false)
+                return
+            }
+        }
+
+        setOuvert(false)
+        setDonnees({ nom: '', prenom: '', telephone: '', boutiqueId: '' })
+        setChargement(false)
+        onRefresh?.()
     }
 
     const supprimerEmploye = async (id: string) => {
         if (!confirm("Supprimer cet employé ?")) return
 
-        try {
-            const reponse = await fetch(`/api/employes?id=${id}`, { method: "DELETE" })
-            if (reponse.ok) {
-                toast.success("Employé supprimé")
-                onRefresh ? onRefresh() : router.refresh()
+        const result = await mutationOffline({
+            url: `/api/employes?id=${id}`,
+            method: 'DELETE',
+            tag: 'employe:supprimer',
+            donneeLocale: id,
+            onOffline: (empId) => {
+                setListeEmployes((prev) => prev.filter(e => e.id !== empId))
+                toast.warning('Suppression enregistrée localement')
+            },
+            onSuccess: async () => {
+                await deleteEmployeLocal(id)
+            },
+        })
+
+        if (result.source === 'network') {
+            if (result.ok) {
+                setListeEmployes((prev) => prev.filter(e => e.id !== id))
+                await deleteEmployeLocal(id)
+                toast.success('Employé supprimé')
+            } else {
+                toast.error(result.error || 'Erreur lors de la suppression')
             }
-        } catch (erreur) {
-            toast.error("Erreur lors de la suppression")
         }
+
+        onRefresh?.()
     }
 
     const copierCode = (code: string) => {
@@ -178,7 +219,7 @@ export function GestionEmployes({
                 </Dialog>
             </div>
 
-            {employes.length === 0 ? (
+            {listeEmployes.length === 0 ? (
                 <Card>
                     <CardContent className="py-12 text-center">
                         <User className="h-12 w-12 text-gray-300 mx-auto mb-4" />
@@ -188,7 +229,7 @@ export function GestionEmployes({
                 </Card>
             ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {employes.map((employe) => (
+                    {listeEmployes.map((employe) => (
                         <Card key={employe.id}>
                             <CardContent className="p-4">
                                 <div className="flex justify-between items-start mb-3">

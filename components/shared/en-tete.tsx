@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react"
 import { Bell, LogOut, Store } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
-import { signOut } from "next-auth/react"
+import { useDeconnexion } from "@/hooks/use-deconnexion"
 import { cn } from "@/lib/utils"
 import { SyncStatusBadge } from "./sync-status-badge"
 
@@ -21,6 +21,7 @@ interface EnTeteProps {
 export function EnTete({ user }: EnTeteProps) {
   const pathname = usePathname()
   const [dropdownOuvert, setDropdownOuvert] = useState(false)
+  const { deconnecter, enCours } = useDeconnexion()
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const titresPages: Record<string, string> = {
@@ -36,7 +37,7 @@ export function EnTete({ user }: EnTeteProps) {
     "/employe/ventes": "Ventes",
   }
 
-  const titrePage = titresPages[pathname] || "Commerce Vente"
+  const titrePage = titresPages[pathname] || "Kephalé BS"
 
   // Fermer le dropdown en cliquant à l'extérieur
   useEffect(() => {
@@ -104,11 +105,12 @@ export function EnTete({ user }: EnTeteProps) {
 
                   <div className="p-1">
                     <button
-                      onClick={() => signOut({ callbackUrl: "/connexion" })}
-                      className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-all font-medium cursor-pointer"
+                      onClick={deconnecter}
+                      disabled={enCours}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-all font-medium cursor-pointer disabled:opacity-50"
                     >
                       <LogOut className="h-4 w-4" />
-                      Déconnexion
+                      {enCours ? "Déconnexion..." : "Déconnexion"}
                     </button>
                   </div>
                 </div>

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
+import { formatMontant } from "@/lib/utils"
 import {
   Store,
   Users,
@@ -214,7 +215,7 @@ export function AdminBoutiquesClient() {
                         </p>
                       </div>
                       <Badge className="bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-50 font-black text-sm px-2.5 py-1">
-                        {b.solde.toLocaleString("fr-FR")} FCFA
+                        {formatMontant(b.solde)}
                       </Badge>
                     </div>
 

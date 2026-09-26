@@ -11,6 +11,7 @@ import { FormulaireVenteEmploye } from "@/components/employes/formulaire-vente-e
 import { Calendar, ShoppingCart, DollarSign, Store, Loader2, WifiOff } from "lucide-react"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
+import { formatMontant } from "@/lib/utils"
 
 interface DashboardData {
   employe: {
@@ -85,14 +86,14 @@ export function VentesEmployeClient() {
           <p className="text-gray-500 mt-1 flex items-center gap-2">
             <Store className="h-4 w-4" />
             {boutique.nom}
-            <Badge variant="outline" className="text-xs">Solde: {boutique.solde.toFixed(2)} FCFA</Badge>
+            <Badge variant="outline" className="text-xs">Solde: {formatMontant(boutique.solde)}</Badge>
           </p>
         </div>
         <div className="grid grid-cols-3 gap-3 w-full sm:w-auto">
           <Card><CardContent className="p-3 text-center">
             <DollarSign className="h-5 w-5 text-green-500 mx-auto mb-1" />
             <p className="text-[10px] text-gray-500">Aujourd'hui</p>
-            <p className="text-sm font-bold text-green-600">{totalJour.toFixed(0)} FCFA</p>
+            <p className="text-sm font-bold text-green-600">{formatMontant(totalJour, { decimales: false })}</p>
           </CardContent></Card>
           <Card><CardContent className="p-3 text-center">
             <ShoppingCart className="h-5 w-5 text-blue-500 mx-auto mb-1" />
@@ -102,7 +103,7 @@ export function VentesEmployeClient() {
           <Card><CardContent className="p-3 text-center">
             <Calendar className="h-5 w-5 text-purple-500 mx-auto mb-1" />
             <p className="text-[10px] text-gray-500">Mon mois</p>
-            <p className="text-sm font-bold text-purple-600">{ventesMoisTotal.toFixed(0)} FCFA</p>
+            <p className="text-sm font-bold text-purple-600">{formatMontant(ventesMoisTotal, { decimales: false })}</p>
           </CardContent></Card>
         </div>
       </div>
@@ -133,12 +134,12 @@ export function VentesEmployeClient() {
                       {vente.enregistrePar && <> • par {vente.enregistrePar.prenom} {vente.enregistrePar.nom}</>}
                     </p>
                   </div>
-                  <Badge variant="default">{vente.montant.toFixed(2)} FCFA</Badge>
+                  <Badge variant="default">{formatMontant(vente.montant)}</Badge>
                 </div>
               ))}
               <div className="flex justify-between items-center pt-3 mt-3 border-t font-bold">
                 <span>Total aujourd'hui</span>
-                <span className="text-green-600">{totalJour.toFixed(2)} FCFA</span>
+                <span className="text-green-600">{formatMontant(totalJour)}</span>
               </div>
             </div>
           )}

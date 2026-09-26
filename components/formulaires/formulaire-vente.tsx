@@ -1,4 +1,4 @@
-// src/components/formulaires/formulaire-vente.tsx - Même correction
+// src/components/formulaires/formulaire-vente.tsx
 "use client"
 
 import { useState } from "react"
@@ -16,11 +16,12 @@ import {
 import { Plus, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
-
+import { useOnlineStatus } from "@/hooks/use-online-status"
 import { useVentesOffline } from "@/hooks/use-ventes-offline"
 
 export function FormulaireVente({ boutiqueId, onVenteCreee }: { boutiqueId: string; onVenteCreee?: () => void }) {
     const router = useRouter()
+    const isOnline = useOnlineStatus()
     const { creerVente } = useVentesOffline(boutiqueId)
     const [ouvert, setOuvert] = useState(false)
     const [chargement, setChargement] = useState(false)
@@ -49,8 +50,17 @@ export function FormulaireVente({ boutiqueId, onVenteCreee }: { boutiqueId: stri
             if (result) {
                 setOuvert(false)
                 setDonnees({ montant: "", description: "" })
-                if (onVenteCreee) onVenteCreee()
-                router.refresh()
+                
+                // Appeler le callback parent si fourni (actualise la liste locale)
+                if (onVenteCreee) {
+                    onVenteCreee()
+                }
+                
+                // Recharger depuis le serveur UNIQUEMENT si en ligne
+                // En mode hors ligne, la mise à jour optimiste du hook suffit
+                if (isOnline) {
+                    router.refresh()
+                }
             }
         } catch (erreur) {
             toast.error("Erreur de connexion")

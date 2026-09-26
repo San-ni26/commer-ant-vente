@@ -3,7 +3,7 @@ import Link from "next/link"
 import { Phone, CheckCircle, ArrowLeft, Store } from "lucide-react"
 
 export const metadata = {
-  title: "Abonnement - Commerce Vente",
+  title: "Abonnement - Kephalé BS",
   description: "Activez votre abonnement 12 mois pour débloquer toutes les fonctionnalités.",
 }
 
@@ -25,7 +25,7 @@ export default function PageAbonnement() {
         <div className="bg-blue-600 p-3 rounded-xl shadow-lg shadow-blue-500/30">
           <Store className="h-7 w-7 text-white" />
         </div>
-        <span className="text-white font-bold text-xl tracking-wide">Commerce Vente</span>
+        <span className="text-white font-bold text-xl tracking-wide">Kephalé BS</span>
       </div>
 
       {/* Carte principale */}

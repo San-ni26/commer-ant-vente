@@ -8,11 +8,11 @@ import { Store, Users, TrendingUp, Shield, ArrowRight } from "lucide-react"
 import { RedirectIfLoggedIn } from "@/components/shared/redirect-if-logged-in"
 
 export const metadata: Metadata = {
-  title: "Commerce Vente — Digitalisez votre commerce",
+  title: "Kephalé BS — Business Sales",
   description:
     "Gérer vos ventes, boutiques et employés depuis une seule plateforme. Suivez votre activité en temps réel.",
   openGraph: {
-    title: "Commerce Vente — Digitalisez votre commerce",
+    title: "Kephalé BS — Business Sales",
     description:
       "Gérez vos ventes, boutiques et employés depuis une seule plateforme.",
     type: "website",
@@ -33,7 +33,7 @@ export default function PageAccueil() {
           <div className="container mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2">
               <Store className="h-8 w-8 text-blue-600" aria-hidden="true" />
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Commerce Vente</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Kephalé BS</h1>
             </div>
             <div className="flex gap-2 sm:gap-4 w-full sm:w-auto justify-center">
               <Link href="/connexion" className="flex-1 sm:flex-initial">
@@ -160,7 +160,7 @@ export default function PageAccueil() {
       {/* Pied de page */}
       <footer className="bg-gray-900 text-white py-8">
         <div className="container mx-auto px-4 text-center">
-          <p>&copy; 2024 Commerce Vente. Tous droits réservés.</p>
+          <p>&copy; 2024 Kephalé BS. Tous droits réservés.</p>
         </div>
       </footer>
     </div>

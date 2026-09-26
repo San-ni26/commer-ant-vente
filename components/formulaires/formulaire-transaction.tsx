@@ -88,14 +88,12 @@ export function FormulaireTransaction({ boutiqueId, onTransactionCreee }: { bout
                     <div>
                         <Label htmlFor="type">Type de transaction *</Label>
                         <Select value={donnees.type} onValueChange={(v) => setDonnees({ ...donnees, type: v })}>
-                            <SelectTrigger id="type">
+                            <SelectTrigger id="type" className="bg-white">
                                 <SelectValue placeholder="Sélectionner le type" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="VERSEMENT">Versement</SelectItem>
                                 <SelectItem value="DEPENSE">Dépense</SelectItem>
-                                <SelectItem value="VIREMENT_BANCAIRE">Virement bancaire</SelectItem>
-                                <SelectItem value="RETRAIT">Retrait</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

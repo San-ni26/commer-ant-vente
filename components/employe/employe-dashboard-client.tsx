@@ -15,6 +15,7 @@ import {
 import Link from "next/link"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
+import { formatMontant } from "@/lib/utils"
 
 interface DashboardData {
   employe: {
@@ -240,7 +241,7 @@ export function EmployeDashboardClient() {
                 <Store className="h-4 w-4" />
                 {boutique.nom}
                 <Badge variant="outline" className="text-xs">
-                  Solde: {boutique.solde.toFixed(2)} FCFA
+                  Solde: {formatMontant(boutique.solde)}
                 </Badge>
               </span>
             ) : (
@@ -274,7 +275,7 @@ export function EmployeDashboardClient() {
               <CardContent className="p-4 text-center">
                 <DollarSign className="h-8 w-8 text-green-500 mx-auto mb-2" />
                 <p className="text-xs text-gray-500">{LABELS_STATS[periode]}</p>
-                <p className="text-xl sm:text-2xl font-bold text-green-600">{totalAujourdhui.toFixed(0)} FCFA</p>
+                <p className="text-xl sm:text-2xl font-bold text-green-600">{formatMontant(totalAujourdhui, { decimales: false })}</p>
               </CardContent>
             </Card>
             <Card>
@@ -288,7 +289,7 @@ export function EmployeDashboardClient() {
               <CardContent className="p-4 text-center">
                 <TrendingUp className="h-8 w-8 text-purple-500 mx-auto mb-2" />
                 <p className="text-xs text-gray-500">Ce mois</p>
-                <p className="text-xl sm:text-2xl font-bold text-purple-600">{ventesMoisTotal.toFixed(0)} FCFA</p>
+                <p className="text-xl sm:text-2xl font-bold text-purple-600">{formatMontant(ventesMoisTotal, { decimales: false })}</p>
               </CardContent>
             </Card>
             <Card>
@@ -376,7 +377,7 @@ export function EmployeDashboardClient() {
                           )}
                         </p>
                       </div>
-                      <Badge variant="default">{vente.montant.toFixed(2)} FCFA</Badge>
+                      <Badge variant="default">{formatMontant(vente.montant)}</Badge>
                     </div>
                   ))}
                 </div>

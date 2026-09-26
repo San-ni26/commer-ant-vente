@@ -1,46 +1,43 @@
-// public/sw.js — Service Worker v6 — Commerce Vente
-// Stratégies : Cache First (assets), SWR (pages), Network Only (API), Cache First (fonts/images)
-// NOUVEAU v6 : Correction Vary, exemption CSRF et exemption HMR/WebSockets
+// public/sw.js — Service Worker v7 — Kephalé BS
+// v7 : Cache First agressif sur toutes les pages dashboard — navigation offline complète
 
-const SW_VERSION = 'v6'
+const SW_VERSION = 'v7'
 const CACHES = {
-  static:  `cv-static-${SW_VERSION}`,   // JS/CSS chunks Next.js (immutables)
-  pages:   `cv-pages-${SW_VERSION}`,    // Pages HTML (SWR)
-  images:  `cv-images-${SW_VERSION}`,   // Images PNG/SVG/ICO
-  fonts:   `cv-fonts-${SW_VERSION}`,    // Google Fonts
-  offline: `cv-offline-${SW_VERSION}`,  // Fallback offline
-  apiRead: `cv-api-read-${SW_VERSION}`, // Cache lecture des réponses GET API
+  static:  `kbs-static-${SW_VERSION}`,
+  pages:   `kbs-pages-${SW_VERSION}`,
+  images:  `kbs-images-${SW_VERSION}`,
+  fonts:   `kbs-fonts-${SW_VERSION}`,
+  offline: `kbs-offline-${SW_VERSION}`,
+  apiRead: `kbs-api-read-${SW_VERSION}`,
 }
 
-// Pages pré-cachées dès l'installation
 const PRECACHE_PAGES = ['/', '/connexion', '/inscription']
-const PRECACHE_ASSETS = ['/favicon.ico', '/manifest.webmanifest']
+const PRECACHE_ASSETS = ['/favicon.ico']
 
-// Limites de taille des caches (entrées max)
 const CACHE_LIMITS = {
-  pages:   30,
+  pages:   80,
   images:  60,
   fonts:   20,
-  apiRead: 50,
+  apiRead: 100,
 }
 
-// Durées d'expiration (ms)
 const EXPIRY = {
-  pages:   7  * 24 * 60 * 60 * 1000, // 7 jours
+  pages:   365  * 24 * 60 * 60 * 1000, // 7 jours
   images:  30 * 24 * 60 * 60 * 1000, // 30 jours
   fonts:   90 * 24 * 60 * 60 * 1000, // 90 jours
-  apiRead: 24 * 60 * 60 * 1000,       // 24 heures pour les données API
+  apiRead: 24 * 60 * 60 * 1000,       // 24h
 }
 
 // ─────────────────────────────────────────────
 // PAGE OFFLINE FALLBACK (HTML inline)
+// Affiché UNIQUEMENT si la page n'a jamais été visitée
 // ─────────────────────────────────────────────
 const OFFLINE_HTML = `<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hors ligne — Commerce Vente</title>
+  <title>Hors ligne — Kephalé BS</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -91,12 +88,12 @@ const OFFLINE_HTML = `<!DOCTYPE html>
 <body>
   <div class="card">
     <div class="icon">📡</div>
-    <h1>Vous êtes hors ligne</h1>
-    <p>Vérifiez votre connexion internet. Vos données locales sont disponibles dans l'application.</p>
+    <h1>Page non disponible hors ligne</h1>
+    <p>Cette page n'a pas encore été mise en cache. Visitez-la une fois en ligne pour pouvoir y accéder hors connexion.</p>
     <div class="hint">
-      💡 Toutes les ventes et transactions enregistrées hors ligne seront automatiquement synchronisées à la reconnexion.
+      💡 Naviguez vers vos boutiques en ligne — elles seront ensuite accessibles hors connexion.
     </div>
-    <button onclick="window.location.reload()">Réessayer</button>
+    <button onclick="history.back()">Retour</button>
   </div>
 </body>
 </html>`
@@ -105,7 +102,6 @@ const OFFLINE_HTML = `<!DOCTYPE html>
 // UTILITAIRES
 // ─────────────────────────────────────────────
 
-/** Ajoute un timestamp X-SW-Fetched-At à la réponse pour gérer l'expiry */
 function stampResponse(response) {
   const headers = new Headers(response.headers)
   headers.set('X-SW-Fetched-At', Date.now().toString())
@@ -116,14 +112,12 @@ function stampResponse(response) {
   })
 }
 
-/** Vérifie si une réponse estampillée est expirée */
 function isExpired(response, maxAgeMs) {
   const fetchedAt = response.headers.get('X-SW-Fetched-At')
   if (!fetchedAt) return false
   return Date.now() - parseInt(fetchedAt) > maxAgeMs
 }
 
-/** Supprime les entrées en excès d'un cache (garde les N plus récentes) */
 async function trimCache(cacheName, maxEntries) {
   const cache = await caches.open(cacheName)
   const keys = await cache.keys()
@@ -133,50 +127,43 @@ async function trimCache(cacheName, maxEntries) {
   }
 }
 
-/** Notifie tous les onglets d'un événement */
 async function notifierClients(message) {
   const clients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' })
   clients.forEach(client => client.postMessage(message))
 }
 
 /**
- * Génère une clé de cache normalisée pour les requêtes de pages Next.js afin d'éviter
- * les conflits de l'en-tête Vary: RSC entre HTML et les payloads RSC.
+ * Clé de cache normalisée — ignore les paramètres RSC de Next.js
+ * et partitionne HTML vs RSC pour éviter les conflits Vary
  */
 function getCacheKey(request) {
   const url = new URL(request.url)
-  // Supprimer le paramètre cache-buster de Next.js
   url.searchParams.delete('_rsc')
-  
-  // Déterminer s'il s'agit d'une requête RSC
-  const isRsc = 
-    request.headers.has('RSC') || 
+
+  const isRsc =
+    request.headers.has('RSC') ||
     request.headers.get('accept')?.includes('text/x-component') ||
     request.headers.has('Next-Router-Prefetch')
-  
-  // Partitionner artificiellement le cache par paramètre d'URL pour éviter le Vary matching
+
   if (isRsc) {
     url.searchParams.set('__rsc', '1')
   } else {
     url.searchParams.set('__html', '1')
   }
 
-  // Retourner un objet Request propre servant de clé de cache
   return new Request(url.toString(), {
     method: 'GET',
-    headers: {
-      'Accept': isRsc ? 'text/x-component' : 'text/html'
-    }
+    headers: { 'Accept': isRsc ? 'text/x-component' : 'text/html' }
   })
 }
 
 // ─────────────────────────────────────────────
-// INSTALL — Précache des ressources critiques
+// INSTALL
 // ─────────────────────────────────────────────
 self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
-      // Précache offline fallback
+      // Stocker le fallback offline
       const offlineCache = await caches.open(CACHES.offline)
       await offlineCache.put(
         '/__offline__',
@@ -185,19 +172,19 @@ self.addEventListener('install', (event) => {
         })
       )
 
-      // Précache pages principales (normalisées)
+      // Pré-cacher les pages d'auth
       const pagesCache = await caches.open(CACHES.pages)
-      const pageRequests = PRECACHE_PAGES.map(url => new Request(url))
       await Promise.allSettled(
-        pageRequests.map(async (req) => {
+        PRECACHE_PAGES.map(async (url) => {
           try {
+            const req = new Request(url)
             const res = await fetch(req)
             if (res.ok) await pagesCache.put(getCacheKey(req), stampResponse(res))
-          } catch (_) {/* réseau indisponible au moment de l'install */}
+          } catch (_) {}
         })
       )
 
-      // Précache assets statiques (favicon, manifest)
+      // Pré-cacher les assets statiques
       const imagesCache = await caches.open(CACHES.images)
       await Promise.allSettled(
         PRECACHE_ASSETS.map(async (url) => {
@@ -214,7 +201,7 @@ self.addEventListener('install', (event) => {
 })
 
 // ─────────────────────────────────────────────
-// ACTIVATE — Nettoyage des vieux caches
+// ACTIVATE
 // ─────────────────────────────────────────────
 self.addEventListener('activate', (event) => {
   event.waitUntil(
@@ -222,16 +209,13 @@ self.addEventListener('activate', (event) => {
       const knownCaches = Object.values(CACHES)
       const allCacheNames = await caches.keys()
 
-      // Supprimer les caches des versions précédentes
       await Promise.all(
         allCacheNames
-          .filter(name => name.startsWith('cv-') && !knownCaches.includes(name))
+          .filter(name => name.startsWith('kbs-') && !knownCaches.includes(name))
           .map(name => caches.delete(name))
       )
 
       await self.clients.claim()
-
-      // Notifier les clients que le SW est actif
       await notifierClients({ type: 'SW_ACTIVE', version: SW_VERSION })
     })()
   )
@@ -251,48 +235,50 @@ self.addEventListener('fetch', (event) => {
     url.protocol === 'wss:'
   ) return
 
-  // ── Laisser passer HMR (Hot Module Replacement) et handshakes WebSockets
+  // Laisser passer HMR et WebSockets
   if (
     url.pathname.includes('webpack-hmr') ||
     request.headers.get('upgrade') === 'websocket'
-  ) {
-    return
-  }
+  ) return
 
-  // ── Intercepter la déconnexion pour vider les caches de session et pages
+  // Déconnexion → vider caches de session
   if (url.pathname.includes('/api/auth/signout')) {
     event.waitUntil(
       Promise.all([
         caches.delete(CACHES.pages),
         caches.delete(CACHES.apiRead),
-      ]).then(() => {
-        console.log('[SW] Caches nettoyés après déconnexion')
-      })
+      ])
     )
-    return // Laisser la requête aller au réseau normalement
+    return
   }
 
-  // ── Laisser passer directement les routes d'authentification de Next-Auth (évite les bugs de CSRF/Tokens) sauf la session
+  // Laisser passer les routes d'auth (CSRF, tokens)
   if (url.pathname.startsWith('/api/auth/') && !url.pathname.includes('/api/auth/session')) {
     return
   }
 
-  // Ignorer les requêtes non-GET non-API
+  // Ignorer les mutations (POST, PUT, PATCH, DELETE) — gérées par fetch-offline.ts
   if (request.method !== 'GET') return
 
-  // ── 1. API GET → Network First avec cache lecture offline
+  // ── 1. API GET → Network First + cache offline 24h
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(apiNetworkFirst(request))
     return
   }
 
-  // ── 2. Assets Next.js statiques → Cache First (immutables 1 an)
+  // ── 2. Assets Next.js statiques → Cache First (immutables)
   if (url.pathname.startsWith('/_next/static/')) {
     event.respondWith(cacheFirst(request, CACHES.static))
     return
   }
 
-  // ── 3. Google Fonts → Cache First (90 jours)
+  // ── 3. Chunks Next.js data/image → Cache First
+  if (url.pathname.startsWith('/_next/')) {
+    event.respondWith(cacheFirst(request, CACHES.static))
+    return
+  }
+
+  // ── 4. Google Fonts → Cache First 90 jours
   if (
     url.hostname === 'fonts.googleapis.com' ||
     url.hostname === 'fonts.gstatic.com'
@@ -301,7 +287,7 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // ── 4. Images (PNG, JPG, SVG, ICO, WEBP) → Cache First (30 jours)
+  // ── 5. Images → Cache First 30 jours
   if (/\.(png|jpg|jpeg|svg|ico|webp|avif|gif)$/i.test(url.pathname)) {
     event.respondWith(
       cacheFirstWithExpiry(request, CACHES.images, EXPIRY.images)
@@ -310,8 +296,8 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // ── 5. Pages HTML et payloads RSC de Next.js → Stale While Revalidate (7 jours)
-  const isPageOrRsc = 
+  // ── 6. Pages HTML et payloads RSC → Cache First offline + revalidation en arrière-plan
+  const isPageOrRsc =
     !url.pathname.startsWith('/_next/') &&
     (
       request.headers.get('accept')?.includes('text/html') ||
@@ -322,7 +308,7 @@ self.addEventListener('fetch', (event) => {
 
   if (isPageOrRsc) {
     event.respondWith(
-      staleWhileRevalidate(request, CACHES.pages, EXPIRY.pages)
+      cacheFirstRevalidate(request)
         .then(r => { trimCache(CACHES.pages, CACHE_LIMITS.pages); return r })
     )
     return
@@ -339,9 +325,7 @@ self.addEventListener('sync', (event) => {
   if (event.tag === 'sync-queue') {
     event.waitUntil(
       (async () => {
-        // Notifier les clients pour qu'ils effectuent la sync via IndexedDB
         await notifierClients({ type: 'SW_SYNC_REQUEST' })
-        // Attendre un peu pour que le client ait le temps de traiter
         await new Promise(resolve => setTimeout(resolve, 2000))
         await notifierClients({ type: 'SW_SYNC_COMPLETE' })
       })()
@@ -353,31 +337,64 @@ self.addEventListener('sync', (event) => {
 // STRATÉGIES
 // ─────────────────────────────────────────────
 
-/** API Network First : réseau d'abord, fallback sur cache lecture offline */
+/**
+ * Cache First avec revalidation en arrière-plan.
+ * OFFLINE : sert le cache IMMÉDIATEMENT sans aller sur le réseau.
+ * ONLINE  : sert le cache si disponible + met à jour en arrière-plan.
+ * Jamais de page "hors ligne" si la page a déjà été visitée.
+ */
+async function cacheFirstRevalidate(request) {
+  const cache = await caches.open(CACHES.pages)
+  const cacheKey = getCacheKey(request)
+  const cached = await cache.match(cacheKey, { ignoreVary: true })
+
+  // Toujours revalider en arrière-plan si en ligne
+  const revalidate = fetch(request)
+    .then(async (response) => {
+      if (response.ok) {
+        await cache.put(cacheKey, stampResponse(response.clone()))
+      }
+      return response
+    })
+    .catch(() => null)
+
+  // Hors ligne OU cache disponible → servir le cache immédiatement
+  if (cached) {
+    // Lancer la revalidation en arrière-plan (fire & forget)
+    revalidate.catch(() => {})
+    return cached
+  }
+
+  // Pas encore en cache → attendre le réseau
+  try {
+    const response = await revalidate
+    if (response && response.ok) return response
+    // Réseau KO et pas de cache → fallback minimal
+    return offlineFallback(request)
+  } catch {
+    return offlineFallback(request)
+  }
+}
+
+/** API Network First : réseau d'abord, fallback sur cache 24h */
 async function apiNetworkFirst(request) {
   try {
     const response = await fetch(request)
     if (response.ok) {
-      // Mettre en cache la réponse GET pour une utilisation offline
       const cache = await caches.open(CACHES.apiRead)
       await cache.put(request, stampResponse(response.clone()))
       trimCache(CACHES.apiRead, CACHE_LIMITS.apiRead)
     }
     return response
   } catch {
-    // Hors ligne : retourner le cache
     const cache = await caches.open(CACHES.apiRead)
     const cached = await cache.match(request)
     if (cached && !isExpired(cached, EXPIRY.apiRead)) {
       return cached
     }
-    // Pas de cache → 503 avec JSON
     return new Response(
       JSON.stringify({ erreur: 'Hors ligne', offline: true }),
-      {
-        status: 503,
-        headers: { 'Content-Type': 'application/json' },
-      }
+      { status: 503, headers: { 'Content-Type': 'application/json' } }
     )
   }
 }
@@ -394,12 +411,12 @@ async function cacheFirst(request, cacheName) {
       await cache.put(request, response.clone())
     }
     return response
-  } catch (err) {
+  } catch {
     return offlineFallback(request)
   }
 }
 
-/** Cache First avec expiry : rafraîchit si trop vieux */
+/** Cache First avec expiry */
 async function cacheFirstWithExpiry(request, cacheName, maxAgeMs) {
   const cache = await caches.open(cacheName)
   const cached = await cache.match(request)
@@ -415,43 +432,13 @@ async function cacheFirstWithExpiry(request, cacheName, maxAgeMs) {
       return response
     }
     return cached || response
-  } catch (err) {
-    if (cached) return cached
-    return offlineFallback(request)
-  }
-}
-
-/** Stale While Revalidate : sert le cache immédiatement + met à jour en arrière-plan */
-async function staleWhileRevalidate(request, cacheName, maxAgeMs) {
-  const cache = await caches.open(cacheName)
-  const cacheKey = getCacheKey(request)
-  const cached = await cache.match(cacheKey, { ignoreVary: true })
-
-  const fetchPromise = fetch(request)
-    .then(async (response) => {
-      if (response.ok) {
-        await cache.put(cacheKey, stampResponse(response.clone()))
-      }
-      return response
-    })
-    .catch(() => null)
-
-  if (cached && !isExpired(cached, maxAgeMs)) {
-    return cached
-  }
-
-  try {
-    const response = await fetchPromise
-    if (response) return response
-    if (cached) return cached
-    return offlineFallback(request)
   } catch {
     if (cached) return cached
     return offlineFallback(request)
   }
 }
 
-/** Network with cache fallback : essaie le réseau, fallback sur cache */
+/** Network with cache fallback */
 async function networkWithFallback(request) {
   const cacheKey = getCacheKey(request)
   try {
@@ -469,7 +456,7 @@ async function networkWithFallback(request) {
   }
 }
 
-/** Retourne la page offline ou une réponse 503 si tout échoue */
+/** Fallback offline — affiché seulement si la page n'a JAMAIS été visitée */
 async function offlineFallback(request) {
   const accept = request.headers.get('accept') || ''
 

@@ -10,6 +10,7 @@ import {
 import Link from "next/link"
 import { format, differenceInDays } from "date-fns"
 import { fr } from "date-fns/locale"
+import { formatMontant } from "@/lib/utils"
 
 interface TableauDeBordAdminProps {
   nombreBoutiques: number
@@ -85,12 +86,12 @@ export function TableauDeBordAdmin({
         <CarteStatistique titre="Abonnements actifs" valeur={nombreAbonnementsActifs.toString()} icone={CreditCard} />
         <CarteStatistique
           titre="Ventes/mois"
-          valeur={`${(ventesDuMois || 0).toLocaleString("fr-FR")} FCFA`}
+          valeur={formatMontant(ventesDuMois || 0)}
           icone={TrendingUp}
         />
         <CarteStatistique
           titre="Revenus abo."
-          valeur={`${(revenuTotal || 0).toLocaleString("fr-FR")} FCFA`}
+          valeur={formatMontant(revenuTotal || 0)}
           icone={DollarSign}
         />
       </div>

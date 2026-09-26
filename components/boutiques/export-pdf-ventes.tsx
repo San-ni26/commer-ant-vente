@@ -17,8 +17,18 @@ type Vente = {
     }
 }
 
+type Transaction = {
+    id: string
+    type: "VERSEMENT" | "DEPENSE"
+    montant: number
+    description: string | null
+    dateTransaction: string
+    reference?: string | null
+}
+
 interface ExportPDFProps {
     ventes: Vente[]
+    transactions?: Transaction[]
     boutiqueNom: string
     totalVentes: number
     nombreVentes: number
@@ -31,6 +41,7 @@ interface ExportPDFProps {
 
 export function ExportPDFVentes({
     ventes,
+    transactions = [],
     boutiqueNom,
     totalVentes,
     nombreVentes,
@@ -42,7 +53,6 @@ export function ExportPDFVentes({
 }: ExportPDFProps) {
     const [chargement, setChargement] = useState(false)
 
-    // Fonction pour formater les montants correctement
     const formatterMontant = (montant: number) => {
         const valeur = Math.round(montant)
         const valeurStr = valeur.toString()
@@ -50,8 +60,7 @@ export function ExportPDFVentes({
         for (let i = valeurStr.length; i > 0; i -= 3) {
             parties.unshift(valeurStr.substring(Math.max(0, i - 3), i))
         }
-        const nombreFormate = parties.join(' ')
-        return `${nombreFormate} FCFA`
+        return `${parties.join(" ")} FCFA`
     }
 
     const exporterPDF = async () => {
@@ -61,124 +70,152 @@ export function ExportPDFVentes({
             const { default: jsPDF } = await import("jspdf")
             const { default: autoTable } = await import("jspdf-autotable")
 
-            const doc = new jsPDF({
-                orientation: "portrait", // Format vertical
-                unit: "mm",
-                format: "a4",
-            })
-
+            const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
             const pageWidth = doc.internal.pageSize.getWidth()
-            const pageHeight = doc.internal.pageSize.getHeight()
 
-            // === EN-TÊTE ===
+            // Calculs globaux
+            const totalVersements = transactions
+                .filter(t => t.type === "VERSEMENT")
+                .reduce((s, t) => s + t.montant, 0)
+            const totalDepenses = transactions
+                .filter(t => t.type === "DEPENSE")
+                .reduce((s, t) => s + t.montant, 0)
+            const totalTransactions = totalVersements + totalDepenses
+            const reste = totalVentes - totalTransactions
+
+            // ── EN-TÊTE ──────────────────────────────────────────────
             doc.setFillColor(37, 99, 235)
             doc.rect(0, 0, pageWidth, 30, "F")
 
-            // Titre principal
             doc.setTextColor(255, 255, 255)
             doc.setFontSize(14)
             doc.setFont("helvetica", "bold")
-            doc.text("Rapport des ventes : " + boutiqueNom, pageWidth / 2, 15, { align: "center" })
+            doc.text("Rapport — " + boutiqueNom, pageWidth / 2, 13, { align: "center" })
 
-            // Date d'export
             doc.setFontSize(8)
             doc.setTextColor(200, 210, 255)
             const dateExport = new Date().toLocaleDateString("fr-FR", {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
+                day: "numeric", month: "long", year: "numeric",
+                hour: "2-digit", minute: "2-digit",
             })
-            doc.text(`Généré le ${dateExport}`, pageWidth / 2, 20, { align: "center" })
+            doc.text(`Généré le ${dateExport}`, pageWidth / 2, 22, { align: "center" })
 
-            // === PÉRIODE ET FILTRES ===
-            let currentY = 40
+            // ── PÉRIODE ───────────────────────────────────────────────
+            let currentY = 38
             doc.setTextColor(80, 80, 100)
-            doc.setFontSize(9)
+            doc.setFontSize(8)
             doc.setFont("helvetica", "bold")
-            doc.text("PÉRIODE D'ANALYSE", 14, currentY)
-
+            doc.text("PÉRIODE", 14, currentY)
             doc.setFont("helvetica", "normal")
-            doc.setFontSize(9)
             doc.setTextColor(100, 100, 120)
+            doc.text(
+                filtreActif !== "personnalise"
+                    ? filtreActif
+                    : dateDebut && dateFin ? `Du ${dateDebut} au ${dateFin}` : filtreActif,
+                14, currentY + 5
+            )
 
-            if (filtreActif !== "personnalise") {
-                doc.text(`Filtre : ${filtreActif}`, 14, currentY + 6)
-            } else if (dateDebut && dateFin) {
-                doc.text(`Du ${dateDebut} au ${dateFin}`, 14, currentY + 6)
-            }
+            // ── RÉCAPITULATIF ─────────────────────────────────────────
+            currentY = 52
 
-            // === STATISTIQUES ===
-            currentY = 55
-
-            // Fond gris clair pour les stats
+            // Fond des stats
             doc.setFillColor(248, 250, 252)
-            doc.roundedRect(14, currentY, pageWidth - 28, 32, 3, 3, "F")
+            doc.roundedRect(14, currentY, pageWidth - 28, 42, 3, 3, "F")
 
-            // Ligne 1 des stats
-            doc.setFontSize(9)
-            doc.setTextColor(80, 80, 100)
-
-            // Total
+            // Ligne 1 : Ventes
+            doc.setFontSize(8)
             doc.setFont("helvetica", "bold")
-            doc.text("Total des ventes :", 20, currentY + 7)
+            doc.setTextColor(80, 80, 100)
+            doc.text("Total ventes :", 20, currentY + 8)
+            doc.setFont("helvetica", "normal")
+            doc.setTextColor(22, 163, 74)
+            doc.setFontSize(10)
+            doc.text(`+${formatterMontant(totalVentes)}`, 20, currentY + 15)
+
+            // Nb ventes
+            doc.setFont("helvetica", "bold")
+            doc.setFontSize(8)
+            doc.setTextColor(80, 80, 100)
+            doc.text("Nombre de ventes :", pageWidth / 2, currentY + 8)
             doc.setFont("helvetica", "normal")
             doc.setTextColor(37, 99, 235)
             doc.setFontSize(10)
-            doc.text(formatterMontant(totalVentes), 20, currentY + 13)
+            doc.text(nombreVentes.toString(), pageWidth / 2, currentY + 15)
 
-            // Nombre de ventes
+            // Ligne 2 : Transactions
             doc.setFont("helvetica", "bold")
+            doc.setFontSize(8)
             doc.setTextColor(80, 80, 100)
-            doc.setFontSize(9)
-            doc.text("Nombre de ventes :", pageWidth / 2, currentY + 7)
+            doc.text("Total versements :", 20, currentY + 23)
             doc.setFont("helvetica", "normal")
-            doc.setTextColor(34, 197, 94)
-            doc.setFontSize(10)
-            doc.text(nombreVentes.toString(), pageWidth / 2, currentY + 13)
+            doc.setTextColor(234, 88, 12)
+            doc.setFontSize(9)
+            doc.text(`-${formatterMontant(totalVersements)}`, 20, currentY + 30)
 
-            // Ligne 2 des stats
-            // Moyenne
             doc.setFont("helvetica", "bold")
+            doc.setFontSize(8)
             doc.setTextColor(80, 80, 100)
-            doc.setFontSize(9)
-            doc.text("Panier moyen :", 20, currentY + 20)
+            doc.text("Total dépenses :", pageWidth / 2, currentY + 23)
             doc.setFont("helvetica", "normal")
-            doc.setTextColor(245, 158, 11)
+            doc.setTextColor(220, 38, 38)
             doc.setFontSize(9)
-            doc.text(formatterMontant(Math.round(moyenne)), 20, currentY + 26)
+            doc.text(`-${formatterMontant(totalDepenses)}`, pageWidth / 2, currentY + 30)
 
-            // Vente max
+            // Ligne 3 : Reste (sur fond coloré)
+            const resteBg = reste >= 0 ? [220, 252, 231] : [254, 226, 226]
+            const resteColor = reste >= 0 ? [22, 163, 74] : [220, 38, 38]
+            doc.setFillColor(...resteBg as [number, number, number])
+            doc.roundedRect(14, currentY + 36, pageWidth - 28, 12, 2, 2, "F")
+
             doc.setFont("helvetica", "bold")
+            doc.setFontSize(9)
             doc.setTextColor(80, 80, 100)
-            doc.setFontSize(9)
-            doc.text("Vente maximum :", pageWidth / 2, currentY + 20)
-            doc.setFont("helvetica", "normal")
-            doc.setTextColor(239, 68, 68)
-            doc.setFontSize(9)
-            doc.text(formatterMontant(maxVente), pageWidth / 2, currentY + 26)
+            doc.text("RESTE (Ventes − Transactions) :", 20, currentY + 44)
+            doc.setTextColor(...resteColor as [number, number, number])
+            doc.setFontSize(11)
+            const resteStr = (reste >= 0 ? "+" : "") + formatterMontant(reste)
+            doc.text(resteStr, pageWidth - 20, currentY + 44, { align: "right" })
 
-            // === TABLEAU AVEC DÉBORDEMENT GÉRÉ ===
-            const rows = ventes.map((v, index) => {
-                const date = typeof v.dateVente === "string" ? new Date(v.dateVente) : v.dateVente
-                const description = v.description || "-"
-                const encaisseur = `${v.enregistrePar.prenom || ""} ${v.enregistrePar.nom}`.trim()
-                const montantFormate = formatterMontant(v.montant)
+            // ── TABLEAU COMBINÉ (ventes + transactions) ───────────────
+            // Construire tous les éléments triés par date décroissante
+            type Ligne = { date: Date; type: string; description: string; ref: string; encaisseur: string; montant: number; signe: string }
 
-                return [
-                    (index + 1).toString(),
-                    date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" }),
-                    date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
-                    description,
-                    encaisseur || "—",
-                    montantFormate,
-                ]
-            })
+            const lignes: Ligne[] = [
+                ...ventes.map(v => ({
+                    date: typeof v.dateVente === "string" ? new Date(v.dateVente) : v.dateVente,
+                    type: "Vente",
+                    description: v.description || "-",
+                    ref: "-",
+                    encaisseur: `${v.enregistrePar.prenom || ""} ${v.enregistrePar.nom}`.trim() || "—",
+                    montant: v.montant,
+                    signe: "+",
+                })),
+                ...transactions.map(t => ({
+                    date: new Date(t.dateTransaction),
+                    type: t.type === "VERSEMENT" ? "Versement" : "Dépense",
+                    description: t.description || "-",
+                    ref: t.reference || "-",
+                    encaisseur: "-",
+                    montant: t.montant,
+                    signe: "-",
+                })),
+            ].sort((a, b) => a.date.getTime() - b.date.getTime())
+
+            const rows = lignes.map((l, i) => [
+                (i + 1).toString(),
+                l.date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" }),
+                l.date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+                l.type,
+                l.description,
+                l.encaisseur,
+                `${l.signe}${formatterMontant(l.montant)}`,
+            ])
+
+            currentY = currentY + 54
 
             autoTable(doc, {
-                startY: currentY + 42,
-                head: [["N°", "Date", "Heure", "Description", "Encaissé par", "Montant"]],
+                startY: currentY,
+                head: [["N°", "Date", "Heure", "Type", "Description", "Par", "Montant"]],
                 body: rows,
                 theme: "striped",
                 headStyles: {
@@ -196,72 +233,59 @@ export function ExportPDFVentes({
                     valign: "middle",
                 },
                 columnStyles: {
-                    0: { halign: "center", cellWidth: 10 },
-                    1: { halign: "center", cellWidth: 20 },
-                    2: { halign: "center", cellWidth: 15 },
-                    3: {
-                        cellWidth: "auto",
-                        overflow: "linebreak",
-                    },
-                    4: { cellWidth: 30, halign: "left" },
-                    5: { halign: "right", cellWidth: 35, fontStyle: "bold" },
+                    0: { halign: "center", cellWidth: 8 },
+                    1: { halign: "center", cellWidth: 18 },
+                    2: { halign: "center", cellWidth: 13 },
+                    3: { cellWidth: 20, halign: "center" },
+                    4: { cellWidth: "auto", overflow: "linebreak" },
+                    5: { cellWidth: 25, halign: "left" },
+                    6: { halign: "right", cellWidth: 30, fontStyle: "bold" },
                 },
-                alternateRowStyles: {
-                    fillColor: [248, 250, 252],
+                // Colorier les lignes selon le type
+                didParseCell: function (data) {
+                    if (data.section === "body") {
+                        const type = rows[data.row.index]?.[3]
+                        if (data.column.index === 6) {
+                            if (type === "Vente") {
+                                data.cell.styles.textColor = [22, 163, 74]
+                            } else if (type === "Versement") {
+                                data.cell.styles.textColor = [234, 88, 12]
+                            } else {
+                                data.cell.styles.textColor = [220, 38, 38]
+                            }
+                        }
+                    }
                 },
+                alternateRowStyles: { fillColor: [248, 250, 252] },
                 margin: { left: 14, right: 14 },
                 rowPageBreak: "auto",
                 pageBreak: "auto",
                 showHead: "everyPage",
-                tableWidth: "auto",
-                styles: {
-                    overflow: "linebreak",
-                    cellWidth: "wrap",
-                },
-                didDrawPage: function (data) {
-                    // Pied de page pour chaque nouvelle page
-                    const currentPageHeight = doc.internal.pageSize.getHeight()
-                    doc.setDrawColor(220, 220, 230)
-                    doc.setLineWidth(0.5)
-                    doc.line(14, currentPageHeight - 12, pageWidth - 14, currentPageHeight - 12)
-                },
             })
 
-            // Récupérer le nombre réel de pages
+            // ── PIED DE PAGE ──────────────────────────────────────────
             const pageCount = doc.getNumberOfPages()
-
-            // Redessiner les pieds de page pour toutes les pages avec le bon numéro
             for (let i = 1; i <= pageCount; i++) {
                 doc.setPage(i)
-                const currentPageHeight = doc.internal.pageSize.getHeight()
-
+                const ph = doc.internal.pageSize.getHeight()
                 doc.setDrawColor(220, 220, 230)
-                doc.setLineWidth(0.5)
-                doc.line(14, currentPageHeight - 12, pageWidth - 14, currentPageHeight - 12)
-
+                doc.setLineWidth(0.4)
+                doc.line(14, ph - 12, pageWidth - 14, ph - 12)
                 doc.setFontSize(7)
                 doc.setTextColor(150, 150, 170)
                 doc.setFont("helvetica", "normal")
-                doc.text(
-                    `Page ${i} / ${pageCount}`,
-                    pageWidth / 2,
-                    currentPageHeight - 6,
-                    { align: "center" }
-                )
+                doc.text(`Page ${i} / ${pageCount}`, pageWidth / 2, ph - 6, { align: "center" })
             }
 
-            // Télécharger
-            const nomFichier = `rapport_ventes_${boutiqueNom.replace(/\s+/g, "_")}_${new Date().toISOString().split('T')[0]}.pdf`
+            const nomFichier = `rapport_${boutiqueNom.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`
             doc.save(nomFichier)
 
             toast.success("PDF exporté avec succès !", {
-                description: `${nombreVentes} ventes exportées`,
+                description: `${nombreVentes} ventes · ${transactions.length} transactions`,
             })
         } catch (erreur) {
             console.error("Erreur export PDF:", erreur)
-            toast.error("Erreur lors de l'export PDF", {
-                description: "Vérifiez votre connexion et réessayez",
-            })
+            toast.error("Erreur lors de l'export PDF")
         } finally {
             setChargement(false)
         }
@@ -271,7 +295,7 @@ export function ExportPDFVentes({
         <Button
             onClick={exporterPDF}
             variant="outline"
-            disabled={chargement || ventes.length === 0}
+            disabled={chargement || (ventes.length === 0 && transactions.length === 0)}
             className="w-full sm:w-auto gap-2 bg-gradient-to-r from-blue-50 to-white border-blue-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200"
         >
             {chargement ? (

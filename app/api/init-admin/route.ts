@@ -8,10 +8,10 @@ export async function GET() {
         const motDePasse = await bcrypt.hash('Paulkone2617', 12)
 
         const admin = await prisma.utilisateur.upsert({
-            where: { email: 'admin@commercevente.com' },
+            where: { email: 'admin@kephale-bs.com' },
             update: {},
             create: {
-                email: 'admin@commercevente.com',
+                email: 'admin@kephale-bs.com',
                 motDePasse,
                 nom: 'Admin Paul',
                 prenom: 'Koné',

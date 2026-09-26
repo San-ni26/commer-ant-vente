@@ -30,6 +30,7 @@ import { format, differenceInDays } from "date-fns"
 import { fr } from "date-fns/locale"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import { formatMontant } from "@/lib/utils"
 
 type Abonnement = {
   id: string
@@ -303,7 +304,7 @@ export function GestionAbonnements({
                   <SelectContent>
                     {Object.entries(DUREE_LABELS).map(([key, label]) => (
                       <SelectItem key={key} value={key}>
-                        {label} — {PRIX[key].toLocaleString("fr-FR")} FCFA
+                        {label} — {formatMontant(PRIX[key])}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -323,7 +324,7 @@ export function GestionAbonnements({
                   </div>
                   <div className="flex justify-between border-t border-gray-200 pt-1 mt-1">
                     <span className="text-gray-500 font-medium">Montant</span>
-                    <span className="font-black text-blue-700">{PRIX[selectedDuree].toLocaleString("fr-FR")} FCFA</span>
+                    <span className="font-black text-blue-700">{formatMontant(PRIX[selectedDuree])}</span>
                   </div>
                 </div>
               )}
@@ -439,7 +440,7 @@ export function GestionAbonnements({
                       {format(new Date(abo.dateFin), "dd/MM/yyyy", { locale: fr })}
                     </td>
                     <td className="px-4 py-3 font-bold text-blue-700">
-                      {abo.montant.toLocaleString("fr-FR")} FCFA
+                      {formatMontant(abo.montant)}
                     </td>
                     <td className="px-4 py-3">
                       {getStatutBadge(abo.statut, abo.dateFin)}
@@ -488,7 +489,7 @@ export function GestionAbonnements({
                   <div className="flex justify-between text-sm text-gray-600 border-t border-gray-100 pt-2">
                     <span>{DUREE_LABELS[abo.duree] ?? abo.duree}</span>
                     <span className="font-bold text-blue-700">
-                      {abo.montant.toLocaleString("fr-FR")} FCFA
+                      {formatMontant(abo.montant)}
                     </span>
                   </div>
                   <div className="text-xs text-gray-400 flex justify-between">

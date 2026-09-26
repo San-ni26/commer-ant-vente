@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
+import { formatMontant } from "@/lib/utils"
 
 const MONTANTS_RAPIDES = [500, 1000, 2000, 5000, 10000, 20000, 50000]
 
@@ -259,7 +260,7 @@ export function VentesEmployePageClient() {
 
       if (reponse.ok) {
         const nouvelleVente = await reponse.json()
-        toast.success(`Vente de ${montantNum.toLocaleString()} FCFA enregistrée !`)
+        toast.success(`Vente de ${formatMontant(montantNum)} enregistrée !`)
         setSucces(true)
         setDerniereVente(montantNum)
         setMontant("")
@@ -342,7 +343,7 @@ export function VentesEmployePageClient() {
             <Store className="h-4 w-4" />
             {boutique.nom}
             <Badge variant="outline" className="text-xs">
-              Solde: {boutique.solde.toFixed(2)} FCFA
+              Solde: {formatMontant(boutique.solde)}
             </Badge>
           </p>
         </div>
@@ -354,7 +355,7 @@ export function VentesEmployePageClient() {
               <DollarSign className="h-5 w-5 text-green-500 mx-auto mb-1" />
               <p className="text-[10px] text-gray-500">Aujourd&apos;hui</p>
               <p className="text-sm font-bold text-green-600">
-                {totalJour.toFixed(0)} FCFA
+                {formatMontant(totalJour, { decimales: false })}
               </p>
             </CardContent>
           </Card>
@@ -370,7 +371,7 @@ export function VentesEmployePageClient() {
               <Calendar className="h-5 w-5 text-purple-500 mx-auto mb-1" />
               <p className="text-[10px] text-gray-500">Mon mois</p>
               <p className="text-sm font-bold text-purple-600">
-                {mesVentesMoisTotal.toFixed(0)} FCFA
+                {formatMontant(mesVentesMoisTotal, { decimales: false })}
               </p>
             </CardContent>
           </Card>
@@ -389,7 +390,7 @@ export function VentesEmployePageClient() {
               <>
                 <CheckCircle className="h-5 w-5 text-green-500 animate-bounce" />
                 <span className="text-green-700">
-                  Vente de {derniereVente?.toLocaleString()} FCFA enregistrée !
+                  Vente de {derniereVente ? formatMontant(derniereVente) : ""} enregistrée !
                 </span>
               </>
             ) : (
@@ -424,7 +425,7 @@ export function VentesEmployePageClient() {
                     onClick={() => montantRapide(m)}
                     className="text-xs sm:text-sm"
                   >
-                    {m.toLocaleString()}
+                    {formatMontant(m, { decimales: false })}
                   </Button>
                 ))}
               </div>
@@ -545,14 +546,14 @@ export function VentesEmployePageClient() {
                       )}
                     </p>
                   </div>
-                  <Badge variant="default">{vente.montant.toFixed(2)} FCFA</Badge>
+                  <Badge variant="default">{formatMontant(vente.montant)}</Badge>
                 </div>
               ))}
 
               {/* Total */}
               <div className="flex justify-between items-center pt-3 mt-3 border-t font-bold">
                 <span>Total aujourd&apos;hui</span>
-                <span className="text-green-600">{totalJour.toFixed(2)} FCFA</span>
+                <span className="text-green-600">{formatMontant(totalJour)}</span>
               </div>
             </div>
           )}

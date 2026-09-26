@@ -10,6 +10,9 @@ import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import { formatMontant } from "@/lib/utils"
+import { mutationOffline } from "@/lib/offline/fetch-offline"
+import { deleteVenteLocale } from "@/lib/offline/db"
 
 type Vente = {
     id: string
@@ -23,11 +26,11 @@ type Vente = {
 }
 
 export function ListeVentesFiltrees({ ventes }: { ventes: Vente[] }) {
-    const router = useRouter()
+    const [listeVentes, setListeVentes] = useState<Vente[]>(ventes)
     const [recherche, setRecherche] = useState("")
     const [suppressionEnCours, setSuppressionEnCours] = useState<string | null>(null)
 
-    const ventesFiltrees = ventes.filter(v =>
+    const ventesFiltrees = listeVentes.filter(v =>
         v.description?.toLowerCase().includes(recherche.toLowerCase()) ||
         v.montant.toString().includes(recherche) ||
         v.enregistrePar.nom.toLowerCase().includes(recherche.toLowerCase())
@@ -40,19 +43,32 @@ export function ListeVentesFiltrees({ ventes }: { ventes: Vente[] }) {
     const supprimerVente = async (id: string) => {
         if (!confirm("Supprimer cette vente ?")) return
         setSuppressionEnCours(id)
-        try {
-            const r = await fetch(`/api/ventes/${id}`, { method: "DELETE" })
-            if (r.ok) {
-                toast.success("Vente supprimée")
-                router.refresh()
+
+        const result = await mutationOffline({
+            url: `/api/ventes/${id}`,
+            method: 'DELETE',
+            tag: 'vente:supprimer',
+            donneeLocale: id,
+            onOffline: (venteId) => {
+                setListeVentes((prev) => prev.filter(v => v.id !== venteId))
+                toast.warning('Suppression enregistrée localement')
+            },
+            onSuccess: async () => {
+                await deleteVenteLocale(id)
+            },
+        })
+
+        if (result.source === 'network') {
+            if (result.ok) {
+                setListeVentes((prev) => prev.filter(v => v.id !== id))
+                await deleteVenteLocale(id)
+                toast.success('Vente supprimée')
             } else {
-                toast.error("Erreur")
+                toast.error('Erreur lors de la suppression')
             }
-        } catch {
-            toast.error("Erreur")
-        } finally {
-            setSuppressionEnCours(null)
         }
+
+        setSuppressionEnCours(null)
     }
 
     if (ventes.length === 0) {
@@ -99,7 +115,7 @@ export function ListeVentesFiltrees({ ventes }: { ventes: Vente[] }) {
                                 <td className="py-3 text-sm max-w-[200px] truncate">{v.description || "-"}</td>
                                 <td className="py-3 text-sm">{v.enregistrePar.prenom || ""} {v.enregistrePar.nom}</td>
                                 <td className="py-3 text-sm text-right font-bold">
-                                    {v.montant.toLocaleString('fr-FR')} FCFA
+                                    {formatMontant(v.montant)}
                                 </td>
                                 <td className="py-3 text-right">
                                     <Button
@@ -126,7 +142,7 @@ export function ListeVentesFiltrees({ ventes }: { ventes: Vente[] }) {
                             <span className="text-xs text-gray-500">
                                 {format(getDate(v.dateVente), "dd/MM/yyyy HH:mm", { locale: fr })}
                             </span>
-                            <span className="font-bold">{v.montant.toLocaleString('fr-FR')} FCFA</span>
+                            <span className="font-bold">{formatMontant(v.montant)}</span>
                         </div>
                         {v.description && <p className="text-sm">{v.description}</p>}
                         <div className="flex justify-between items-center">
@@ -151,7 +167,7 @@ export function ListeVentesFiltrees({ ventes }: { ventes: Vente[] }) {
             <div className="flex justify-between items-center pt-4 border-t font-bold">
                 <span>Total</span>
                 <span className="text-green-600 text-lg">
-                    {total.toLocaleString('fr-FR')} FCFA
+                    {formatMontant(total)}
                 </span>
             </div>
         </div>

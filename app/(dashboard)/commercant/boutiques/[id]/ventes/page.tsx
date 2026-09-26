@@ -7,6 +7,5 @@ interface PageProps {
 
 export default async function PageVentes({ params }: PageProps) {
   const { id } = await params
-
   return <VentesBoutiqueClient boutiqueId={id} />
 }

@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { toast } from "sonner"
+import { formatMontant } from "@/lib/utils"
 
 interface Abonnement {
   id: string
@@ -236,7 +237,7 @@ export default function SubscriptionsPage() {
                       <td className="p-4">
                         {format(new Date(abonnement.dateFin), "dd/MM/yyyy", { locale: fr })}
                       </td>
-                      <td className="p-4">{abonnement.montant.toFixed(2)} €</td>
+                      <td className="p-4">{formatMontant(abonnement.montant)}</td>
                       <td className="p-4">{getStatusBadge(abonnement.statut)}</td>
                     </tr>
                   ))}

@@ -23,18 +23,43 @@ export async function GET(
 
     const { id } = await context.params
 
-    const transactions = await prisma.transaction.findMany({
-      where: { boutiqueId: id },
-      include: {
-        verifieePar: {
-          select: { nom: true, prenom: true }
-        }
-      },
-      orderBy: { dateTransaction: 'desc' },
-      take: 50
-    })
+    // Charger les transactions (VERSEMENT et DEPENSE uniquement)
+    // + les stats agrégées depuis la DB en une seule requête
+    const [transactions, statsDB] = await Promise.all([
+      prisma.transaction.findMany({
+        where: {
+          boutiqueId: id,
+          type: { in: ["VERSEMENT", "DEPENSE"] }
+        },
+        include: {
+          verifieePar: {
+            select: { nom: true, prenom: true }
+          }
+        },
+        orderBy: { dateTransaction: 'desc' },
+        take: 100
+      }),
+      // Agrégation directe en DB — totaux exacts sur tout l'historique
+      prisma.transaction.groupBy({
+        by: ['type'],
+        where: {
+          boutiqueId: id,
+          type: { in: ["VERSEMENT", "DEPENSE"] },
+          verifiee: true
+        },
+        _sum: { montant: true },
+        _count: true,
+      })
+    ])
 
-    return NextResponse.json(transactions)
+    // Calculer totalVersements et totalDepenses depuis les agrégats DB
+    const totaux = {
+      totalVersements: statsDB.find(s => s.type === "VERSEMENT")?._sum.montant ?? 0,
+      totalDepenses: statsDB.find(s => s.type === "DEPENSE")?._sum.montant ?? 0,
+      enAttente: transactions.filter(t => !t.verifiee).length,
+    }
+
+    return NextResponse.json({ transactions, totaux })
   } catch (erreur) {
     console.error("Erreur GET transactions:", erreur)
     return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 })

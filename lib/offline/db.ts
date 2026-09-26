@@ -2,7 +2,7 @@
 // Base de données locale IndexedDB pour le mode hors-ligne
 import { openDB, type IDBPDatabase } from 'idb'
 
-const DB_NAME = 'commerce-vente-offline'
+const DB_NAME = 'kephale-bs-offline'
 const DB_VERSION = 1
 
 export interface SyncQueueItem {
@@ -230,6 +230,30 @@ export async function saveTransactionLocale(transaction: TransactionLocale): Pro
   await db.put('transactions', transaction)
 }
 
+export async function deleteTransactionLocale(id: string): Promise<void> {
+  const db = await getDB()
+  await db.delete('transactions', id)
+}
+
+/**
+ * Remplace un ID temporaire (temp_*) par l'ID réel retourné par le serveur
+ * après synchronisation réussie. Utilisé pour ventes et transactions.
+ */
+export async function replaceLocalId(
+  store: 'ventes' | 'transactions',
+  tempId: string,
+  realId: string
+): Promise<void> {
+  const db = await getDB()
+  const tx = db.transaction(store, 'readwrite')
+  const existing = await tx.store.get(tempId)
+  if (existing) {
+    await tx.store.delete(tempId)
+    await tx.store.put({ ...existing, id: realId, enAttente: false, syncedAt: Date.now() })
+  }
+  await tx.done
+}
+
 // ─────────────────────────────────────────────
 // EMPLOYÉS
 // ─────────────────────────────────────────────
@@ -245,6 +269,21 @@ export async function saveEmployesLocaux(employes: EmployeLocal[]): Promise<void
     ...employes.map((e) => tx.store.put(e)),
     tx.done,
   ])
+}
+
+export async function saveEmployeLocal(employe: EmployeLocal): Promise<void> {
+  const db = await getDB()
+  await db.put('employes', employe)
+}
+
+export async function deleteEmployeLocal(id: string): Promise<void> {
+  const db = await getDB()
+  await db.delete('employes', id)
+}
+
+export async function deleteBoutiqueLocale(id: string): Promise<void> {
+  const db = await getDB()
+  await db.delete('boutiques', id)
 }
 
 // ─────────────────────────────────────────────
@@ -278,4 +317,52 @@ export async function viderQueue(): Promise<void> {
 export async function compterQueue(): Promise<number> {
   const db = await getDB()
   return db.count('sync_queue')
+}
+
+// ─────────────────────────────────────────────
+// NETTOYAGE À LA DÉCONNEXION
+// ─────────────────────────────────────────────
+
+/**
+ * Vide toutes les données métier du commerçant connecté.
+ * À appeler AVANT signOut() pour éviter que les données
+ * d'un commerçant soient visibles par le suivant.
+ * La queue de sync est aussi vidée car elle appartient à la session.
+ */
+export async function nettoyerDonneesLocales(): Promise<void> {
+  try {
+    const db = await getDB()
+    const tx = db.transaction(
+      ['boutiques', 'ventes', 'transactions', 'employes', 'sync_queue'],
+      'readwrite'
+    )
+
+    await Promise.all([
+      tx.objectStore('boutiques').clear(),
+      tx.objectStore('ventes').clear(),
+      tx.objectStore('transactions').clear(),
+      tx.objectStore('employes').clear(),
+      tx.objectStore('sync_queue').clear(),
+      tx.done,
+    ])
+
+    // Invalider le marqueur de préchargement
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('preload_completed')
+    }
+
+    // Vider les caches Service Worker de données
+    if (typeof window !== 'undefined' && 'caches' in window) {
+      const cacheNames = await caches.keys()
+      await Promise.all(
+        cacheNames
+          .filter(name => name.includes('kbs-api-read') || name.includes('kbs-pages'))
+          .map(name => caches.delete(name))
+      )
+    }
+
+    console.log('[DB] Données locales nettoyées après déconnexion')
+  } catch (erreur) {
+    console.error('[DB] Erreur nettoyage:', erreur)
+  }
 }

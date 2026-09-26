@@ -13,12 +13,12 @@ declare global {
 function createPool() {
   return new Pool({
     connectionString: process.env.DATABASE_URL!,
-    // Ferme les connexions inactives AVANT que le pooler (PgBouncer) ne les coupe
-    idleTimeoutMillis: 20_000,       // 20 s (marge confortable sous les 30 s de PgBouncer)
-    connectionTimeoutMillis: 5_000,  // 5 s → échec rapide + retry immédiat
-    max: 5,                          // limite les connexions simultanées
-    keepAlive: true,
-    keepAliveInitialDelayMillis: 5_000,
+    // Config optimisée pour NextAuth adapter qui fait de petites requêtes fréquentes
+    idleTimeoutMillis: 30_000,       // 30s — garde les connexions chaudes
+    connectionTimeoutMillis: 10_000, // 10s pour établir une connexion
+    max: 2,                          // Limité à 2 car PgBouncer pooler côté serveur gère le reste
+    min: 0,                          // Pas de connexions persistantes (serverless friendly)
+    allowExitOnIdle: true,           // Permet au process de se terminer proprement
   })
 }
 

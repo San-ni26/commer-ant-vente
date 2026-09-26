@@ -5,6 +5,7 @@ import {
   getQueue,
   supprimerDeQueue,
   mettreAJourQueue,
+  replaceLocalId,
   type SyncQueueItem,
 } from './db'
 
@@ -12,6 +13,8 @@ export type SyncResult = {
   success: number
   failed: number
   errors: Array<{ item: SyncQueueItem; error: string }>
+  // Map localId → realId pour que les hooks puissent mettre à jour leur état
+  idMappings: Record<string, string>
 }
 
 type SyncListener = (result: SyncResult) => void
@@ -29,31 +32,34 @@ function notifyListeners(result: SyncResult) {
   listeners.forEach((fn) => fn(result))
 }
 
+// Émis item par item pour les résolutions immédiates dans les hooks
+type ItemSyncedListener = (localId: string, realId: string, tag: string) => void
+const itemListeners: ItemSyncedListener[] = []
+
+export function onItemSynced(fn: ItemSyncedListener): () => void {
+  itemListeners.push(fn)
+  return () => {
+    const idx = itemListeners.indexOf(fn)
+    if (idx !== -1) itemListeners.splice(idx, 1)
+  }
+}
+
 let isSyncing = false
 
 /**
  * Rejoue toutes les opérations en attente dans la queue.
- * Appelé automatiquement à la reconnexion et au démarrage si en ligne.
+ * Appelé automatiquement à la reconnexion et via Background Sync.
  */
 export async function syncQueue(): Promise<SyncResult> {
-  if (isSyncing) {
-    return { success: 0, failed: 0, errors: [] }
-  }
-
-  if (typeof window === 'undefined') {
-    return { success: 0, failed: 0, errors: [] }
-  }
-
-  if (!navigator.onLine) {
-    return { success: 0, failed: 0, errors: [] }
-  }
+  if (isSyncing) return { success: 0, failed: 0, errors: [], idMappings: {} }
+  if (typeof window === 'undefined') return { success: 0, failed: 0, errors: [], idMappings: {} }
+  if (!navigator.onLine) return { success: 0, failed: 0, errors: [], idMappings: {} }
 
   isSyncing = true
   const queue = await getQueue()
+  const result: SyncResult = { success: 0, failed: 0, errors: [], idMappings: {} }
 
-  const result: SyncResult = { success: 0, failed: 0, errors: [] }
-
-  // Traiter en série (FIFO) pour éviter les conflits
+  // Traitement FIFO en série pour éviter les conflits d'ordre
   for (const item of queue) {
     if (!item.id) continue
 
@@ -62,37 +68,58 @@ export async function syncQueue(): Promise<SyncResult> {
         method: item.method,
         headers: { 'Content-Type': 'application/json' },
         body: item.body ? JSON.stringify(item.body) : undefined,
-        // Important: pas de cache pour les mutations de sync
         cache: 'no-store',
       })
 
       if (response.ok) {
-        // Succès : supprimer de la queue
         await supprimerDeQueue(item.id)
         result.success++
+
+        // Résolution de l'ID temporaire → ID réel
+        if (item.localId) {
+          try {
+            const body = await response.json()
+            const realId: string | undefined = body?.id
+
+            if (realId && realId !== item.localId) {
+              // Remplacer dans IDB
+              const store = item.tag.startsWith('vente')
+                ? 'ventes'
+                : item.tag.startsWith('transaction')
+                ? 'transactions'
+                : null
+
+              if (store) {
+                await replaceLocalId(store, item.localId, realId)
+              }
+
+              // Notifier les hooks React
+              result.idMappings[item.localId] = realId
+              itemListeners.forEach((fn) => fn(item.localId!, realId, item.tag))
+            }
+          } catch {
+            // Le corps de la réponse peut déjà avoir été consommé — pas bloquant
+          }
+        }
       } else {
-        // Erreur serveur (4xx, 5xx)
         const errMsg = `HTTP ${response.status}`
+        item.attempts++
 
         if (response.status >= 400 && response.status < 500) {
-          // Erreur client (données invalides, conflit) → supprimer après max tentatives
-          item.attempts++
+          // Erreur client définitive → abandon après maxAttempts
           if (item.attempts >= item.maxAttempts) {
             await supprimerDeQueue(item.id)
-            result.errors.push({ item, error: `Abandon après ${item.maxAttempts} tentatives: ${errMsg}` })
+            result.errors.push({ item, error: `Abandon: ${errMsg}` })
           } else {
             await mettreAJourQueue({ ...item, attempts: item.attempts })
           }
         } else {
-          // Erreur serveur → incrémenter les tentatives
-          item.attempts++
           await mettreAJourQueue({ ...item, attempts: item.attempts })
           result.errors.push({ item, error: errMsg })
         }
         result.failed++
       }
     } catch {
-      // Erreur réseau → incrémenter les tentatives
       item.attempts++
       if (item.attempts >= item.maxAttempts) {
         await supprimerDeQueue(item.id!)
@@ -115,8 +142,8 @@ export function getIsSyncing(): boolean {
 }
 
 /**
- * Enregistre la queue pour Background Sync API (si supportée par le navigateur).
- * Fallback : sync au moment de la reconnexion via événement `online`.
+ * Enregistre le Background Sync tag auprès du Service Worker.
+ * Fallback : écoute l'événement `online` pour déclencher syncQueue directement.
  */
 export async function enregistrerBackgroundSync(): Promise<void> {
   if (typeof window === 'undefined') return
@@ -124,10 +151,18 @@ export async function enregistrerBackgroundSync(): Promise<void> {
   if ('serviceWorker' in navigator && 'SyncManager' in window) {
     try {
       const registration = await navigator.serviceWorker.ready
-      // @ts-ignore — SyncManager peut ne pas être typé
+      // @ts-ignore
       await registration.sync.register('sync-queue')
-    } catch (err) {
-      console.warn('[Sync] Background Sync non disponible, fallback sur événement online:', err)
+      return
+    } catch {
+      // Background Sync non disponible → fallback ci-dessous
     }
   }
+
+  // Fallback : sync directe à la reconnexion réseau
+  const handleOnline = async () => {
+    await syncQueue()
+    window.removeEventListener('online', handleOnline)
+  }
+  window.addEventListener('online', handleOnline, { once: true })
 }

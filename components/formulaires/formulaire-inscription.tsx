@@ -6,11 +6,14 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Eye, EyeOff } from "lucide-react"
 import { toast } from "sonner"
 
 export function FormulaireInscription() {
     const router = useRouter()
     const [chargement, setChargement] = useState(false)
+    const [afficherMotDePasse, setAfficherMotDePasse] = useState(false)
+    const [afficherConfirmation, setAfficherConfirmation] = useState(false)
     const [donnees, setDonnees] = useState({
         nom: "",
         prenom: "",
@@ -24,7 +27,6 @@ export function FormulaireInscription() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
-        // Validation côté client
         if (donnees.motDePasse !== donnees.confirmationMotDePasse) {
             toast.error("Les mots de passe ne correspondent pas")
             return
@@ -43,33 +45,19 @@ export function FormulaireInscription() {
         setChargement(true)
 
         try {
-            console.log("Envoi des données:", donnees)
-
             const reponse = await fetch("/api/auth/register", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(donnees),
             })
 
             const resultat = await reponse.json()
-            console.log("Réponse:", resultat)
 
             if (reponse.ok) {
                 toast.success("Compte créé avec succès !")
-
-                // Afficher le lien de vérification dans la console pour le développement
-                if (resultat.lienVerification) {
-                    console.log("Lien de vérification:", resultat.lienVerification)
-                    toast.info("Lien de vérification affiché dans la console")
-                }
-
-                router.push("/verification-email")
+                router.push("/connexion")
             } else {
                 toast.error(resultat.erreur || "Erreur lors de l'inscription")
-
-                // Afficher les détails des erreurs de validation
                 if (resultat.details) {
                     resultat.details.forEach((detail: any) => {
                         toast.error(`${detail.champ}: ${detail.message}`)
@@ -148,28 +136,50 @@ export function FormulaireInscription() {
 
             <div>
                 <Label htmlFor="motDePasse">Mot de passe *</Label>
-                <Input
-                    id="motDePasse"
-                    type="password"
-                    required
-                    minLength={8}
-                    value={donnees.motDePasse}
-                    onChange={(e) => setDonnees({ ...donnees, motDePasse: e.target.value })}
-                    placeholder="Minimum 8 caractères"
-                />
+                <div className="relative mt-1.5">
+                    <Input
+                        id="motDePasse"
+                        type={afficherMotDePasse ? "text" : "password"}
+                        required
+                        minLength={8}
+                        value={donnees.motDePasse}
+                        onChange={(e) => setDonnees({ ...donnees, motDePasse: e.target.value })}
+                        placeholder="Minimum 8 caractères"
+                        className="pr-10"
+                    />
+                    <button
+                        type="button"
+                        onClick={() => setAfficherMotDePasse(!afficherMotDePasse)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                        aria-label={afficherMotDePasse ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                    >
+                        {afficherMotDePasse ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                </div>
             </div>
 
             <div>
                 <Label htmlFor="confirmation">Confirmer le mot de passe *</Label>
-                <Input
-                    id="confirmation"
-                    type="password"
-                    required
-                    minLength={8}
-                    value={donnees.confirmationMotDePasse}
-                    onChange={(e) => setDonnees({ ...donnees, confirmationMotDePasse: e.target.value })}
-                    placeholder="Répétez votre mot de passe"
-                />
+                <div className="relative mt-1.5">
+                    <Input
+                        id="confirmation"
+                        type={afficherConfirmation ? "text" : "password"}
+                        required
+                        minLength={8}
+                        value={donnees.confirmationMotDePasse}
+                        onChange={(e) => setDonnees({ ...donnees, confirmationMotDePasse: e.target.value })}
+                        placeholder="Répétez votre mot de passe"
+                        className="pr-10"
+                    />
+                    <button
+                        type="button"
+                        onClick={() => setAfficherConfirmation(!afficherConfirmation)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                        aria-label={afficherConfirmation ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                    >
+                        {afficherConfirmation ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                </div>
             </div>
 
             <Button type="submit" className="w-full" disabled={chargement}>

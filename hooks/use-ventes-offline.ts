@@ -2,7 +2,7 @@
 // Hook pour les ventes avec support hors-ligne complet
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
 import {
   getVentesLocales,
@@ -13,6 +13,7 @@ import {
   type VenteLocale,
 } from '@/lib/offline/db'
 import { fetchAvecCache } from '@/lib/offline/cache'
+import { onItemSynced } from '@/lib/offline/sync'
 import { useOnlineStatus } from './use-online-status'
 import { useSyncStatus } from './use-sync-status'
 
@@ -44,6 +45,7 @@ export function useVentesOffline(boutiqueId: string) {
   const [source, setSource] = useState<'network' | 'cache' | null>(null)
   const isOnline = useOnlineStatus()
   const { refreshCount } = useSyncStatus()
+  const mounted = useRef(true)
 
   const chargerVentes = useCallback(async () => {
     if (!boutiqueId) return
@@ -62,6 +64,7 @@ export function useVentesOffline(boutiqueId: string) {
           )
         }
       )
+
       // Fusionner avec les ventes en attente locales
       const locales = await getVentesLocales(boutiqueId)
       const enAttente = locales.filter((v) => v.enAttente)
@@ -70,21 +73,54 @@ export function useVentesOffline(boutiqueId: string) {
         .filter((v) => !networkIds.has(v.id))
         .map((v) => ({ ...v, enAttente: true } as Vente))
 
-      setVentes([...ventesEnAttente, ...data])
-      setSource(src)
+      if (mounted.current) {
+        setVentes([...ventesEnAttente, ...data])
+        setSource(src)
+      }
     } catch {
-      // Fallback complet sur IDB
       const locales = await getVentesLocales(boutiqueId)
-      setVentes(locales as unknown as Vente[])
-      setSource('cache')
+      if (mounted.current) {
+        setVentes(locales as unknown as Vente[])
+        setSource('cache')
+      }
     } finally {
-      setChargement(false)
+      if (mounted.current) setChargement(false)
     }
   }, [boutiqueId])
 
+  // Résolution des IDs temporaires quand la sync réussit
+  useEffect(() => {
+    const unsub = onItemSynced((localId, realId, tag) => {
+      if (!tag.startsWith('vente')) return
+      if (!mounted.current) return
+
+      setVentes((prev) =>
+        prev.map((v) =>
+          v.id === localId
+            ? { ...v, id: realId, enAttente: false }
+            : v
+        )
+      )
+    })
+
+    return () => unsub()
+  }, [])
+
+  // Recharger dès qu'on revient en ligne
+  useEffect(() => {
+    if (isOnline && source === 'cache') {
+      chargerVentes()
+    }
+  }, [isOnline, source, chargerVentes])
+
+  useEffect(() => {
+    mounted.current = true
+    chargerVentes()
+    return () => { mounted.current = false }
+  }, [chargerVentes])
+
   const creerVente = async (donnees: NouvelleVente): Promise<Vente | null> => {
     if (!isOnline) {
-      // Hors ligne : ID temporaire + queue
       const idTemp = `temp_vente_${Date.now()}_${Math.random().toString(36).slice(2)}`
       const venteTmp: Vente = {
         id: idTemp,
@@ -97,13 +133,9 @@ export function useVentesOffline(boutiqueId: string) {
         enAttente: true,
       }
 
-      // Affichage optimiste
+      // Affichage optimiste immédiat
       setVentes((prev) => [venteTmp, ...prev])
-
-      // Sauvegarder en IDB
       await saveVenteLocale({ ...toLocale(venteTmp), enAttente: true })
-
-      // Mettre en queue
       await ajouterALaQueue({
         method: 'POST',
         url: `/api/boutiques/${donnees.boutiqueId}/ventes`,
@@ -114,18 +146,17 @@ export function useVentesOffline(boutiqueId: string) {
         tag: 'vente:creer',
         localId: idTemp,
       })
-
       await refreshCount()
 
       toast.warning('Vente enregistrée localement', {
-        description: 'Elle sera synchronisée dès que vous serez connecté.',
+        description: 'Elle sera synchronisée dès la reconnexion.',
         duration: 5000,
       })
 
       return venteTmp
     }
 
-    // En ligne : appel API
+    // En ligne : appel API direct
     try {
       const reponse = await fetch(`/api/boutiques/${donnees.boutiqueId}/ventes`, {
         method: 'POST',
@@ -141,7 +172,7 @@ export function useVentesOffline(boutiqueId: string) {
       toast.success('Vente enregistrée avec succès')
       return nouvelleVente
     } catch {
-      toast.error('Impossible d\'enregistrer la vente')
+      toast.error("Impossible d'enregistrer la vente")
       return null
     }
   }
@@ -150,17 +181,6 @@ export function useVentesOffline(boutiqueId: string) {
     await deleteVenteLocale(id)
     setVentes((prev) => prev.filter((v) => v.id !== id))
   }
-
-  // Recharger dès qu'on revient en ligne
-  useEffect(() => {
-    if (isOnline && source === 'cache') {
-      chargerVentes()
-    }
-  }, [isOnline, source, chargerVentes])
-
-  useEffect(() => {
-    chargerVentes()
-  }, [chargerVentes])
 
   const totalVentes = ventes
     .filter((v) => !v.enAttente)

@@ -3,12 +3,13 @@
 
 import { useState } from "react"
 import { signIn } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import {
-    Mail, Lock, Phone, Key, Loader2, User, Building2
+    Mail, Lock, Phone, Key, Loader2, User, Building2, Eye, EyeOff
 } from "lucide-react"
 import {
     Dialog,
@@ -20,12 +21,14 @@ import {
 } from "@/components/ui/dialog"
 
 export function FormulaireConnexion() {
+    const router = useRouter()
     const [mode, setMode] = useState<"commercant" | "employe">("commercant")
     const [chargement, setChargement] = useState(false)
 
     // Commerçant
     const [email, setEmail] = useState("")
     const [motDePasse, setMotDePasse] = useState("")
+    const [afficherMotDePasse, setAfficherMotDePasse] = useState(false)
 
     // Réinitialisation de mot de passe
     const [openReset, setOpenReset] = useState(false)
@@ -79,7 +82,9 @@ export function FormulaireConnexion() {
                 toast.error("Email ou mot de passe incorrect")
             } else if (resultat?.ok) {
                 toast.success("Connexion réussie !")
-                window.location.href = "/commercant"
+                // router.push = navigation client, ne passe pas par le proxy HTTP
+                router.push("/commercant")
+                router.refresh()
             }
         } catch {
             toast.error("Erreur de connexion")
@@ -104,7 +109,8 @@ export function FormulaireConnexion() {
                 toast.error("Numéro ou code incorrect")
             } else if (resultat?.ok) {
                 toast.success("Connexion réussie !")
-                window.location.href = "/employe"
+                router.push("/employe")
+                router.refresh()
             }
         } catch {
             toast.error("Erreur de connexion")
@@ -161,7 +167,7 @@ export function FormulaireConnexion() {
                     <div>
                         <div className="flex items-center justify-between">
                             <Label htmlFor="motDePasse">Mot de passe</Label>
-                            
+
                             <Dialog open={openReset} onOpenChange={setOpenReset}>
                                 <DialogTrigger asChild>
                                     <button
@@ -206,13 +212,21 @@ export function FormulaireConnexion() {
                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                             <Input
                                 id="motDePasse"
-                                type="password"
+                                type={afficherMotDePasse ? "text" : "password"}
                                 required
                                 value={motDePasse}
                                 onChange={(e) => setMotDePasse(e.target.value)}
                                 placeholder="Votre mot de passe"
-                                className="pl-10 h-11"
+                                className="pl-10 pr-10 h-11"
                             />
+                            <button
+                                type="button"
+                                onClick={() => setAfficherMotDePasse(!afficherMotDePasse)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                aria-label={afficherMotDePasse ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                            >
+                                {afficherMotDePasse ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
                         </div>
                     </div>
 

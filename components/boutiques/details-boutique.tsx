@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Store, Users, DollarSign, TrendingUp, ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { cn } from "@/lib/utils"
+import { cn, formatMontant } from "@/lib/utils"
 
 interface BoutiqueDetail {
   id: string
@@ -61,7 +61,7 @@ export function DetailsBoutique({ boutique }: { boutique: BoutiqueDetail }) {
             "font-bold",
             boutique.solde >= 0 ? "text-emerald-400" : "text-rose-400"
           )}>
-            {boutique.solde.toLocaleString("fr-FR")} FCFA
+            {formatMontant(boutique.solde)}
           </span>
         </div>
       </div>
@@ -81,7 +81,7 @@ export function DetailsBoutique({ boutique }: { boutique: BoutiqueDetail }) {
         </Link>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -126,7 +126,7 @@ export function DetailsBoutique({ boutique }: { boutique: BoutiqueDetail }) {
             <Store className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{boutique.solde.toFixed(2)} FCFA</div>
+            <div className="font-bold whitespace-nowrap text-[clamp(0.75rem,2.5vw,1.25rem)]">{formatMontant(boutique.solde)}</div>
           </CardContent>
         </Card>
       </div>

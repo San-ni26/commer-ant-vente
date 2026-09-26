@@ -3,8 +3,6 @@ import { NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
-import crypto from "crypto"
-import { envoyerEmailVerification } from "@/lib/email"
 
 const schemaInscription = z.object({
   nom: z.string().min(2),
@@ -40,9 +38,6 @@ export async function POST(req: Request) {
     }
 
     const motDePasseHash = await bcrypt.hash(donnees.motDePasse, 12)
-    const tokenVerification = crypto.randomBytes(32).toString("hex")
-    const dateExpiration = new Date()
-    dateExpiration.setHours(dateExpiration.getHours() + 24)
     const dateFinEssai = new Date()
     dateFinEssai.setDate(dateFinEssai.getDate() + 7)
 
@@ -55,8 +50,9 @@ export async function POST(req: Request) {
           nom: donnees.nom,
           prenom: donnees.prenom || "",
           telephone: donnees.telephone,
-          tokenVerification,
-          dateExpirationToken: dateExpiration,
+          emailVerifie: true,
+          tokenVerification: null,
+          dateExpirationToken: null,
         }
       })
 
@@ -82,23 +78,12 @@ export async function POST(req: Request) {
       return { user, boutique, abonnement }
     })
 
-    // Envoyer l'email de vérification (ne pas bloquer si erreur)
-    try {
-      await envoyerEmailVerification(donnees.email, tokenVerification)
-      console.log('✅ Email de vérification envoyé à:', donnees.email)
-    } catch (emailError) {
-      console.error('⚠️ Erreur envoi email (compte créé quand même):', emailError)
-    }
-
-    // Afficher le lien dans la console pour le développement
-    const lienDev = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/auth/verification?token=${tokenVerification}`
-    console.log('📧 Lien de vérification (dev):', lienDev)
+    // Email de bienvenue non requis — compte actif immédiatement
 
     return NextResponse.json(
       {
-        message: "Compte créé avec succès. Vérifiez votre email.",
+        message: "Compte créé avec succès. Vous pouvez vous connecter immédiatement.",
         utilisateurId: resultat.user.id,
-        lienVerification: lienDev // À retirer en production
       },
       { status: 201 }
     )

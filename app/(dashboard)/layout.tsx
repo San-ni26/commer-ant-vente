@@ -1,22 +1,20 @@
 // src/app/(dashboard)/layout.tsx
-import { auth } from "@/lib/auth"
-import { redirect } from "next/navigation"
+import { SyncProvider } from "@/components/offline/SyncProvider"
+import { DashboardAuthGuard } from "@/components/auth/dashboard-auth-guard"
 import { DashboardLayoutClient } from "./dashboard-layout-client"
 
-export default async function DashboardLayout({
+export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const session = await auth()
-
-  if (!session?.user) {
-    redirect("/connexion")
-  }
-
   return (
-    <DashboardLayoutClient user={session.user}>
-      {children}
-    </DashboardLayoutClient>
+    <SyncProvider>
+      <DashboardAuthGuard>
+        <DashboardLayoutClient>
+          {children}
+        </DashboardLayoutClient>
+      </DashboardAuthGuard>
+    </SyncProvider>
   )
 }

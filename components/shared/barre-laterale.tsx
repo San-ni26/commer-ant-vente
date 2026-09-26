@@ -16,7 +16,7 @@ import {
   ChevronRight
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { signOut } from "next-auth/react"
+import { useDeconnexion } from "@/hooks/use-deconnexion"
 import { Button } from "@/components/ui/button"
 
 interface BarreLateraleProps {
@@ -31,6 +31,7 @@ interface BarreLateraleProps {
 export function BarreLaterale({ onClose, user }: BarreLateraleProps) {
   const pathname = usePathname()
   const [mounted, setMounted] = useState(false)
+  const { deconnecter, enCours } = useDeconnexion()
 
   useEffect(() => {
     setMounted(true)
@@ -67,8 +68,8 @@ export function BarreLaterale({ onClose, user }: BarreLateraleProps) {
             <Store className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="font-bold text-sm sm:text-base">Commerce Vente</h1>
-            <p className="text-[10px] sm:text-xs text-gray-400">Gestion commerciale</p>
+            <h1 className="font-bold text-sm sm:text-base">Kephalé BS</h1>
+            <p className="text-[10px] sm:text-xs text-gray-400">Business Sales</p>
           </div>
         </div>
         <Button
@@ -126,10 +127,11 @@ export function BarreLaterale({ onClose, user }: BarreLateraleProps) {
         <Button
           variant="ghost"
           className="w-full text-gray-400 hover:text-white hover:bg-gray-700 justify-start text-sm"
-          onClick={() => signOut({ callbackUrl: "/connexion" })}
+          onClick={deconnecter}
+          disabled={enCours}
         >
           <LogOut className="h-4 w-4 mr-2" />
-          Déconnexion
+          {enCours ? "Déconnexion..." : "Déconnexion"}
         </Button>
       </div>
     </div>

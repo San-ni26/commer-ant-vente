@@ -1,33 +1,39 @@
 "use client"
 
 import { useEffect } from "react"
+import { useSession } from "next-auth/react"
 import { BarreLaterale } from "@/components/shared/barre-laterale"
 import { EnTete } from "@/components/shared/en-tete"
 import { BarreNavigationBas } from "@/components/shared/barre-navigation-bas"
 
 interface DashboardLayoutClientProps {
     children: React.ReactNode
-    user: {
+    // user peut venir du parent ou être lu depuis useSession directement
+    user?: {
         name?: string | null
         email?: string | null
         role?: string
     }
 }
 
-export function DashboardLayoutClient({ children, user }: DashboardLayoutClientProps) {
+export function DashboardLayoutClient({ children, user: userProp }: DashboardLayoutClientProps) {
+    const { data: session } = useSession()
+    const user = userProp ?? (session?.user as any) ?? {}
+
     useEffect(() => {
         if (typeof window === "undefined" || !("serviceWorker" in navigator) || !navigator.onLine) return
 
         // Éviter de relancer le prefetch à chaque navigation de page
         if ((window as any).__dashboardPrefetched) return
+        
+        const role = user?.role
+        if (!role) return
+        
         (window as any).__dashboardPrefetched = true
 
         const prefetchPages = async () => {
-            const role = user?.role
-            if (!role) return
-
             const links: Record<string, string[]> = {
-                ADMIN: ["/admin", "/admin/boutiques", "/admin/abonnements", "/admin/rapports"],
+                ADMIN: ["/admin", "/admin/boutiques", "/admin/abonnements"],
                 COMMERCANT: ["/commercant", "/commercant/boutiques", "/commercant/employes", "/commercant/rapports"],
                 EMPLOYE: ["/employe", "/employe/ventes"],
             }
@@ -36,19 +42,16 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
             const pathsToPrefetch = (links[role as keyof typeof links] || [])
                 .filter(path => path !== currentPath)
 
+            // Prefetch séquentiel espacé — évite le burst qui surcharge le serveur
             for (const path of pathsToPrefetch) {
                 try {
-                    // 1. Charger la version HTML
-                    fetch(path, { headers: { "Accept": "text/html" } }).catch(() => {})
-                    
-                    // 2. Charger la version RSC pour la navigation interne fluide Next.js
-                    fetch(path, {
-                        headers: {
-                            "RSC": "1",
-                            "Accept": "text/x-component",
-                            "Next-Router-Prefetch": "1"
-                        }
-                    }).catch(() => {})
+                    // Version HTML uniquement — RSC géré automatiquement par Next.js
+                    await fetch(path, {
+                        headers: { "Accept": "text/html" },
+                        priority: "low",
+                    } as RequestInit).catch(() => {})
+                    // 300ms entre chaque prefetch pour ne pas saturer
+                    await new Promise(r => setTimeout(r, 300))
                 } catch {
                     // Ignorer les erreurs
                 }
@@ -64,9 +67,9 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
             }
         }
 
-        const timer = setTimeout(runPrefetch, 4000)
+        const timer = setTimeout(runPrefetch, 6000)
         return () => clearTimeout(timer)
-    }, [user])
+    }, [user?.role]) // Seulement le role, pas l'objet user entier
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col lg:flex-row">

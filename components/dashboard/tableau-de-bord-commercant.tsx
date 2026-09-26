@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { differenceInDays } from "date-fns"
+import { formatMontant } from "@/lib/utils"
 
 interface BoutiqueAvecAbonnement {
   id: string
@@ -137,19 +138,19 @@ export function TableauDeBordCommercant({ statistiques }: StatistiquesProps) {
         />
         <CarteStatistique
           titre="Ventes/jour"
-          valeur={`${statistiques.ventesDuJour.toLocaleString("fr-FR")} FCFA`}
+          valeur={formatMontant(statistiques.ventesDuJour)}
           icone={DollarSign}
           description="Aujourd'hui"
         />
         <CarteStatistique
           titre="Total Ventes"
-          valeur={`${statistiques.totalVentes.toLocaleString("fr-FR")} FCFA`}
+          valeur={formatMontant(statistiques.totalVentes)}
           icone={TrendingUp}
           description="Global"
         />
         <CarteStatistique
           titre="Solde"
-          valeur={`${statistiques.soldeTotal.toLocaleString("fr-FR")} FCFA`}
+          valeur={formatMontant(statistiques.soldeTotal)}
           icone={Wallet}
           description="Total"
         />
@@ -297,7 +298,7 @@ function CarteBoutique({ boutique }: { boutique: BoutiqueAvecAbonnement }) {
       <div className="flex items-center justify-between sm:justify-end gap-3">
         <BadgeAbonnement boutique={boutique} />
         <Badge variant={boutique.solde >= 0 ? "default" : "destructive"} className="text-xs">
-          {boutique.solde.toLocaleString("fr-FR")} FCFA
+          {formatMontant(boutique.solde)}
         </Badge>
         <ChevronRight className="h-4 w-4 text-gray-400 hidden sm:block" />
       </div>

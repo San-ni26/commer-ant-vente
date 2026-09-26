@@ -1,10 +1,10 @@
 // hooks/use-sync-status.ts
-// Expose l'état de synchronisation (pending count, syncing, lastSync)
+// État de synchronisation — event-driven (pas de polling)
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { compterQueue } from '@/lib/offline/db'
-import { syncQueue, onSyncComplete, getIsSyncing } from '@/lib/offline/sync'
+import { syncQueue, onSyncComplete } from '@/lib/offline/sync'
 
 export interface SyncStatus {
   pendingCount: number
@@ -18,48 +18,51 @@ export function useSyncStatus(): SyncStatus {
   const [pendingCount, setPendingCount] = useState(0)
   const [isSyncing, setIsSyncing] = useState(false)
   const [lastSyncAt, setLastSyncAt] = useState<number | null>(null)
+  const mounted = useRef(true)
 
   const refreshCount = useCallback(async () => {
     try {
       const count = await compterQueue()
-      setPendingCount(count)
+      if (mounted.current) setPendingCount(count)
     } catch {
-      // IDB non disponible (SSR, etc.)
+      // IDB non disponible (SSR)
     }
   }, [])
 
   const forceSync = useCallback(async () => {
     if (isSyncing) return
-    setIsSyncing(true)
+    if (mounted.current) setIsSyncing(true)
     try {
       await syncQueue()
-      setLastSyncAt(Date.now())
+      if (mounted.current) setLastSyncAt(Date.now())
       await refreshCount()
     } finally {
-      setIsSyncing(false)
+      if (mounted.current) setIsSyncing(false)
     }
   }, [isSyncing, refreshCount])
 
   useEffect(() => {
-    // Rafraîchir le compteur toutes les 5 secondes
-    refreshCount()
-    const interval = setInterval(refreshCount, 5000)
+    mounted.current = true
 
-    // Écouter la fin des syncs
+    // Lecture initiale du compteur
+    refreshCount()
+
+    // Écouter la fin de chaque sync — mis à jour event-driven
     const unsub = onSyncComplete(async (result) => {
+      if (!mounted.current) return
       setLastSyncAt(Date.now())
-      await refreshCount()
+      setIsSyncing(false)
+      // Rafraîchir après un court délai (IDB a besoin de terminer ses writes)
+      setTimeout(refreshCount, 100)
     })
 
-    // Synchroniser l'état isSyncing
-    const syncInterval = setInterval(() => {
-      setIsSyncing(getIsSyncing())
-    }, 500)
+    // Rafraîchir toutes les 10s (failsafe uniquement — pas pour isSyncing)
+    const interval = setInterval(refreshCount, 10_000)
 
     return () => {
-      clearInterval(interval)
-      clearInterval(syncInterval)
+      mounted.current = false
       unsub()
+      clearInterval(interval)
     }
   }, [refreshCount])
 

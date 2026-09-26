@@ -2,6 +2,8 @@
 // Shell statique — données chargées côté client avec fallback offline
 import { BoutiquesPageClient } from "@/components/boutiques/boutiques-page-client"
 
+export const dynamic = "force-static"
+
 export default function PageBoutiques() {
   return (
     <div className="space-y-6">

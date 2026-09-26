@@ -5,11 +5,14 @@ import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Search, Calendar, User, Trash2 } from "lucide-react"
+import { Search, Calendar, User, Trash2, Loader2 } from "lucide-react"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import { formatMontant } from "@/lib/utils"
+import { ajouterActionHorsLigne } from "@/lib/offline/queue"
+import { useOnlineStatus } from "@/hooks/use-online-status"
 
 // Type assoupli compatible Prisma
 type Vente = {
@@ -30,6 +33,7 @@ interface ListeVentesProps {
 
 export function ListeVentes({ ventes, boutiqueId }: ListeVentesProps) {
     const router = useRouter()
+    const isOnline = useOnlineStatus()
     const [recherche, setRecherche] = useState("")
     const [suppressionEnCours, setSuppressionEnCours] = useState<string | null>(null)
 
@@ -50,15 +54,30 @@ export function ListeVentes({ ventes, boutiqueId }: ListeVentesProps) {
 
         setSuppressionEnCours(id)
         try {
-            const reponse = await fetch(`/api/ventes/${id}`, { method: "DELETE" })
-            if (reponse.ok) {
-                toast.success("Vente supprimée")
-                router.refresh()
+            if (isOnline) {
+                const reponse = await fetch(`/api/ventes/${id}`, { method: "DELETE" })
+                if (reponse.ok) {
+                    toast.success("Vente supprimée")
+                    router.refresh()
+                } else {
+                    toast.error("Erreur lors de la suppression")
+                }
             } else {
-                toast.error("Erreur lors de la suppression")
+                // Mode hors ligne : ajouter à la queue
+                await ajouterActionHorsLigne({
+                    url: `/api/ventes/${id}`,
+                    method: "DELETE",
+                    body: {},
+                    metadata: { type: "delete_vente", venteId: id }
+                })
+
+                toast.success("Suppression enregistrée — sera synchronisée à la reconnexion")
+                
+                // Note : pas de router.refresh() car on est hors ligne
+                // La vente sera retirée visuellement après sync réussie
             }
         } catch {
-            toast.error("Erreur de connexion")
+            toast.error(isOnline ? "Erreur de connexion" : "Impossible d'enregistrer la suppression")
         } finally {
             setSuppressionEnCours(null)
         }
@@ -89,7 +108,7 @@ export function ListeVentes({ ventes, boutiqueId }: ListeVentesProps) {
                 </div>
                 {recherche && (
                     <Badge variant="secondary" className="w-fit">
-                        {ventesFiltrees.length} résultat{ventesFiltrees.length > 1 ? "s" : ""} • {totalFiltre.toFixed(2)} €
+                        {ventesFiltrees.length} résultat{ventesFiltrees.length > 1 ? "s" : ""} • {formatMontant(totalFiltre)}
                     </Badge>
                 )}
             </div>
@@ -138,7 +157,7 @@ export function ListeVentes({ ventes, boutiqueId }: ListeVentesProps) {
                                     </td>
                                     <td className="py-3 text-sm text-right">
                                         <Badge variant="default" className="font-mono">
-                                            {vente.montant.toFixed(2)} FCFA
+                                            {formatMontant(vente.montant)}
                                         </Badge>
                                     </td>
                                     <td className="py-3 text-right">
@@ -172,7 +191,7 @@ export function ListeVentes({ ventes, boutiqueId }: ListeVentesProps) {
                                     <span>{format(getDateValue(vente.dateVente), "dd/MM/yyyy HH:mm", { locale: fr })}</span>
                                 </div>
                                 <Badge variant="default" className="font-mono text-sm">
-                                    {vente.montant.toFixed(2)} €
+                                    {formatMontant(vente.montant)}
                                 </Badge>
                             </div>
                             {vente.description && (
@@ -203,7 +222,7 @@ export function ListeVentes({ ventes, boutiqueId }: ListeVentesProps) {
             {ventesFiltrees.length > 0 && (
                 <div className="flex justify-between items-center pt-4 border-t text-sm text-gray-500">
                     <span>{ventesFiltrees.length} vente{ventesFiltrees.length > 1 ? "s" : ""}</span>
-                    <span className="font-medium text-gray-700">Total: {totalFiltre.toFixed(2)} FCFA</span>
+                    <span className="font-medium text-gray-700">Total: {formatMontant(totalFiltre)}</span>
                 </div>
             )}
         </div>

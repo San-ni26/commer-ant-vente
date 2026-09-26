@@ -1,7 +1,7 @@
 // components/transactions/transactions-boutique-client.tsx
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useTransactionsOffline } from "@/hooks/use-transactions-offline"
 import { fetchAvecCache } from "@/lib/offline/cache"
 import { getBoutiqueLocale } from "@/lib/offline/db"
@@ -12,6 +12,7 @@ import Link from "next/link"
 import { FormulaireTransaction } from "@/components/formulaires/formulaire-transaction"
 import { ListeTransactions } from "@/components/transactions/liste-transactions"
 import { ExportPDFTransactions } from "@/components/transactions/export-pdf-transactions"
+import { formatMontant } from "@/lib/utils"
 
 interface BoutiqueSimple {
   id: string
@@ -29,6 +30,7 @@ export function TransactionsBoutiqueClient({ boutiqueId }: Props) {
 
   const {
     transactions,
+    totaux,
     chargement: chargementTransactions,
     source,
     isOnline,
@@ -59,19 +61,6 @@ export function TransactionsBoutiqueClient({ boutiqueId }: Props) {
   useEffect(() => {
     chargerBoutique()
   }, [chargerBoutique])
-
-  // Statistiques calculées à la volée
-  const stats = useMemo(() => {
-    return {
-      totalVersements: transactions
-        .filter(t => ["VERSEMENT", "VIREMENT_BANCAIRE"].includes(t.type) && t.verifiee)
-        .reduce((sum, t) => sum + t.montant, 0),
-      totalDepenses: transactions
-        .filter(t => ["DEPENSE", "RETRAIT"].includes(t.type) && t.verifiee)
-        .reduce((sum, t) => sum + t.montant, 0),
-      enAttente: transactions.filter(t => !t.verifiee).length,
-    }
-  }, [transactions])
 
   if (chargementBoutique || (chargementTransactions && transactions.length === 0)) {
     return (
@@ -120,13 +109,13 @@ export function TransactionsBoutiqueClient({ boutiqueId }: Props) {
         </div>
       </div>
 
-      {/* Résumé */}
+      {/* Résumé — totaux exacts depuis la DB via groupBy */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-xs sm:text-sm text-gray-500">Versements</p>
-            <p className="text-lg sm:text-xl font-bold text-green-600">
-              +{stats.totalVersements.toLocaleString("fr-FR")} FCFA
+            <p className="text-lg sm:text-xl font-bold text-orange-600">
+              -{formatMontant(totaux.totalVersements)}
             </p>
           </CardContent>
         </Card>
@@ -134,15 +123,15 @@ export function TransactionsBoutiqueClient({ boutiqueId }: Props) {
           <CardContent className="p-4 text-center">
             <p className="text-xs sm:text-sm text-gray-500">Dépenses</p>
             <p className="text-lg sm:text-xl font-bold text-red-600">
-              -{stats.totalDepenses.toLocaleString("fr-FR")} FCFA
+              -{formatMontant(totaux.totalDepenses)}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-xs sm:text-sm text-gray-500">En attente</p>
-            <p className="text-lg sm:text-xl font-bold text-orange-600">
-              {stats.enAttente}
+            <p className="text-lg sm:text-xl font-bold text-amber-600">
+              {totaux.enAttente}
             </p>
           </CardContent>
         </Card>
@@ -150,7 +139,7 @@ export function TransactionsBoutiqueClient({ boutiqueId }: Props) {
           <CardContent className="p-4 text-center">
             <p className="text-xs sm:text-sm text-gray-500">Solde boutique</p>
             <p className="text-lg sm:text-xl font-bold text-blue-600">
-              {soldeBoutique.toLocaleString("fr-FR")} FCFA
+              {formatMontant(soldeBoutique)}
             </p>
           </CardContent>
         </Card>

@@ -23,8 +23,10 @@ export function OfflineIndicator() {
   useEffect(() => {
     if (!mounted) return
 
+    // Ne plus afficher de bannière en mode offline
+    // On affiche uniquement pendant la synchronisation ou après succès
     if (!isOnline) {
-      setBannerState('offline')
+      setBannerState('hidden')
       return
     }
 
@@ -87,7 +89,7 @@ export function OfflineIndicator() {
       role="status"
       aria-live="polite"
       className={cn(
-        'fixed top-0 left-0 right-0 z-50',
+        'fixed top-0 left-0 right-0 z-40',
         'flex items-center justify-center gap-2',
         'px-4 py-2 text-sm font-medium text-white',
         'shadow-md border-b transition-all duration-300',

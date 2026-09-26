@@ -5,6 +5,7 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { formatMontant } from "@/lib/utils"
 
 interface Boutique {
   id: string
@@ -56,7 +57,7 @@ export function ShopList() {
             <div className="flex justify-between items-start">
               <CardTitle>{boutique.nom}</CardTitle>
               <Badge variant={boutique.solde >= 0 ? "default" : "destructive"}>
-                {boutique.solde.toFixed(2)} €
+                {formatMontant(boutique.solde)}
               </Badge>
             </div>
           </CardHeader>

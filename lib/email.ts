@@ -1,11 +1,12 @@
 // src/lib/email.ts
 import nodemailer from 'nodemailer'
 
-// Configuration du transporteur
+// Configuration Gmail optimisée pour éviter le spam
+// Utilise SSL port 465 (plus fiable que STARTTLS 587 avec Gmail)
 const transporteur = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false,
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true, // SSL dès la connexion
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASSWORD,
@@ -17,9 +18,9 @@ export async function envoyerEmailVerification(email: string, token: string) {
 
   try {
     const info = await transporteur.sendMail({
-      from: `"Commerce Vente" <${process.env.SMTP_USER}>`,
+      from: `"Kephalé BS" <${process.env.SMTP_USER}>`,
       to: email,
-      subject: 'Vérifiez votre adresse email - Commerce Vente',
+      subject: 'Vérifiez votre adresse email - Kephalé BS',
       html: `
         <!DOCTYPE html>
         <html>
@@ -38,7 +39,7 @@ export async function envoyerEmailVerification(email: string, token: string) {
           <body>
             <div class="container">
               <div class="header">
-                <h1>🏪 Commerce Vente</h1>
+                <h1>💼 Kephalé BS</h1>
                 <p>Vérification de votre adresse email</p>
               </div>
               <div class="content">
@@ -55,7 +56,7 @@ export async function envoyerEmailVerification(email: string, token: string) {
                 <p style="color: #666; font-size: 14px;">Ce lien expire dans 24 heures.</p>
               </div>
               <div class="footer">
-                <p>© 2024 Commerce Vente. Tous droits réservés.</p>
+                <p>© 2024 Kephalé BS. Tous droits réservés.</p>
               </div>
             </div>
           </body>
@@ -76,9 +77,9 @@ export async function envoyerEmailReinitialisation(email: string, token: string)
 
   try {
     const info = await transporteur.sendMail({
-      from: `"Commerce Vente" <${process.env.SMTP_USER}>`,
+      from: `"Kephalé BS" <${process.env.SMTP_USER}>`,
       to: email,
-      subject: 'Réinitialisation de votre mot de passe - Commerce Vente',
+      subject: 'Réinitialisation de votre mot de passe - Kephalé BS',
       html: `
         <!DOCTYPE html>
         <html>
@@ -97,7 +98,7 @@ export async function envoyerEmailReinitialisation(email: string, token: string)
           <body>
             <div class="container">
               <div class="header">
-                <h1>🏪 Commerce Vente</h1>
+                <h1>💼 Kephalé BS</h1>
                 <p>Réinitialisation de mot de passe</p>
               </div>
               <div class="content">
@@ -114,7 +115,7 @@ export async function envoyerEmailReinitialisation(email: string, token: string)
                 <p style="color: #666; font-size: 14px;">Ce lien expire dans 1 heure. Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail.</p>
               </div>
               <div class="footer">
-                <p>© 2024 Commerce Vente. Tous droits réservés.</p>
+                <p>© 2024 Kephalé BS. Tous droits réservés.</p>
               </div>
             </div>
           </body>

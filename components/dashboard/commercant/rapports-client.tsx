@@ -20,6 +20,7 @@ import {
   Loader2,
   FileText
 } from "lucide-react"
+import { formatMontant } from "@/lib/utils"
 
 interface RapportsClientProps {
   boutiques: Array<{ id: string; nom: string }>
@@ -67,9 +68,7 @@ export function RapportsCommercantClient({ boutiques, filtres, stats }: Rapports
     })
   }
 
-  const formatterMontant = (valeur: number) => {
-    return `${Math.round(valeur).toLocaleString("fr-FR")} FCFA`
-  }
+  // formatMontant remplacé par formatMontant importé depuis @/lib/utils
 
   // Configuration du graphique SVG
   const donneesGraphique = stats.ventesParJour
@@ -164,7 +163,7 @@ export function RapportsCommercantClient({ boutiques, filtres, stats }: Rapports
           </CardHeader>
           <CardContent>
             <div className="text-lg sm:text-2xl font-black text-gray-900 truncate">
-              {formatterMontant(stats.totalVentes)}
+              {formatMontant(stats.totalVentes)}
             </div>
             <p className="text-[10px] text-gray-400 mt-1">Chiffre d'affaires brut sur la période</p>
           </CardContent>
@@ -196,7 +195,7 @@ export function RapportsCommercantClient({ boutiques, filtres, stats }: Rapports
           </CardHeader>
           <CardContent>
             <div className="text-lg sm:text-2xl font-black text-gray-900 truncate">
-              {formatterMontant(stats.panierMoyen)}
+              {formatMontant(stats.panierMoyen)}
             </div>
             <p className="text-[10px] text-gray-400 mt-1">Moyenne par acte d'achat</p>
           </CardContent>
@@ -212,7 +211,7 @@ export function RapportsCommercantClient({ boutiques, filtres, stats }: Rapports
           </CardHeader>
           <CardContent>
             <div className="text-lg sm:text-2xl font-black text-gray-900 truncate text-red-600">
-              {formatterMontant(stats.totalDepenses)}
+              {formatMontant(stats.totalDepenses)}
             </div>
             <p className="text-[10px] text-gray-400 mt-1">Dépenses & retraits enregistrés</p>
           </CardContent>
@@ -318,7 +317,7 @@ export function RapportsCommercantClient({ boutiques, filtres, stats }: Rapports
                           fontWeight="bold" 
                           textAnchor="middle"
                         >
-                          {formatterMontant(p.montant)}
+                          {formatMontant(p.montant)}
                         </text>
                       </g>
                     </g>
@@ -369,7 +368,7 @@ export function RapportsCommercantClient({ boutiques, filtres, stats }: Rapports
                       <Store className="h-3.5 w-3.5 text-gray-400" />
                       {b.nom}
                     </span>
-                    <span className="font-bold text-gray-900">{formatterMontant(b.montant)}</span>
+                    <span className="font-bold text-gray-900">{formatMontant(b.montant)}</span>
                   </div>
                   <div className="relative w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
                     <div 
@@ -408,7 +407,7 @@ export function RapportsCommercantClient({ boutiques, filtres, stats }: Rapports
                       <Users className="h-3.5 w-3.5 text-gray-400" />
                       {emp.prenom} {emp.nom}
                     </span>
-                    <span className="font-bold text-gray-900">{formatterMontant(emp.montant)}</span>
+                    <span className="font-bold text-gray-900">{formatMontant(emp.montant)}</span>
                   </div>
                   <div className="relative w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
                     <div 
@@ -470,7 +469,7 @@ export function RapportsCommercantClient({ boutiques, filtres, stats }: Rapports
                             {vente.description || "—"}
                           </TableCell>
                           <TableCell className="py-3 text-right font-black text-blue-600 text-xs sm:text-sm">
-                            {formatterMontant(vente.montant)}
+                            {formatMontant(vente.montant)}
                           </TableCell>
                         </TableRow>
                       )

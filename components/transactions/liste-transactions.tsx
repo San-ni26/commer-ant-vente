@@ -19,8 +19,11 @@ import {
 } from "lucide-react"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
+import { formatMontant } from "@/lib/utils"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import { mutationOffline } from "@/lib/offline/fetch-offline"
+import { saveTransactionLocale, deleteTransactionLocale } from "@/lib/offline/db"
 
 // Type assoupli pour accepter les données Prisma
 type Transaction = {
@@ -48,12 +51,15 @@ export function ListeTransactions({
     boutiqueId,
     estCommercant = true
 }: ListeTransactionsProps) {
-    const router = useRouter()
+    const [listeTransactions, setListeTransactions] = useState<Transaction[]>(transactions)
     const [recherche, setRecherche] = useState("")
     const [actionEnCours, setActionEnCours] = useState<string | null>(null)
     const [filtreStatut, setFiltreStatut] = useState<"tous" | "verifie" | "attente">("tous")
 
-    const transactionsFiltrees = transactions.filter(t => {
+    // Filtrer VIREMENT_BANCAIRE et RETRAIT — on n'affiche que VERSEMENT et DEPENSE
+    const transactionsFiltrees = listeTransactions
+    .filter(t => t.type === "VERSEMENT" || t.type === "DEPENSE")
+    .filter(t => {
         const matchRecherche =
             t.description?.toLowerCase().includes(recherche.toLowerCase()) ||
             t.type.toLowerCase().includes(recherche.toLowerCase()) ||
@@ -69,62 +75,94 @@ export function ListeTransactions({
 
     const validerTransaction = async (id: string) => {
         setActionEnCours(id)
-        try {
-            const reponse = await fetch(`/api/boutiques/${boutiqueId}/transactions`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ transactionId: id, action: "valider" }),
-            })
 
-            if (reponse.ok) {
-                toast.success("Transaction validée")
-                router.refresh()
+        const result = await mutationOffline({
+            url: `/api/boutiques/${boutiqueId}/transactions`,
+            method: 'PUT',
+            body: { transactionId: id, action: 'valider' },
+            tag: 'transaction:valider',
+            donneeLocale: id,
+            onOffline: (txId) => {
+                setListeTransactions((prev) => prev.map(t => t.id === txId ? { ...t, verifiee: true } : t))
+                toast.warning('Validation enregistrée localement')
+            },
+            onSuccess: async (data: any) => {
+                if (data) await saveTransactionLocale({ ...data, syncedAt: Date.now() })
+            },
+        })
+
+        if (result.source === 'network') {
+            if (result.ok) {
+                setListeTransactions((prev) => prev.map(t => t.id === id ? { ...t, verifiee: true } : t))
+                toast.success('Transaction validée')
             } else {
-                toast.error("Erreur lors de la validation")
+                toast.error('Erreur lors de la validation')
             }
-        } catch {
-            toast.error("Erreur de connexion")
-        } finally {
-            setActionEnCours(null)
         }
+
+        setActionEnCours(null)
     }
 
     const annulerTransaction = async (id: string) => {
         if (!confirm("Annuler la validation ?")) return
         setActionEnCours(id)
-        try {
-            const reponse = await fetch(`/api/boutiques/${boutiqueId}/transactions`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ transactionId: id, action: "annuler" }),
-            })
-            if (reponse.ok) {
-                toast.success("Validation annulée")
-                router.refresh()
+
+        const result = await mutationOffline({
+            url: `/api/boutiques/${boutiqueId}/transactions`,
+            method: 'PUT',
+            body: { transactionId: id, action: 'annuler' },
+            tag: 'transaction:annuler',
+            donneeLocale: id,
+            onOffline: (txId) => {
+                setListeTransactions((prev) => prev.map(t => t.id === txId ? { ...t, verifiee: false } : t))
+                toast.warning('Annulation enregistrée localement')
+            },
+            onSuccess: async (data: any) => {
+                if (data) await saveTransactionLocale({ ...data, syncedAt: Date.now() })
+            },
+        })
+
+        if (result.source === 'network') {
+            if (result.ok) {
+                setListeTransactions((prev) => prev.map(t => t.id === id ? { ...t, verifiee: false } : t))
+                toast.success('Validation annulée')
+            } else {
+                toast.error('Erreur lors de l\'annulation')
             }
-        } catch {
-            toast.error("Erreur")
-        } finally {
-            setActionEnCours(null)
         }
+
+        setActionEnCours(null)
     }
 
     const supprimerTransaction = async (id: string) => {
         if (!confirm("Supprimer définitivement ?")) return
         setActionEnCours(id)
-        try {
-            const reponse = await fetch(`/api/boutiques/${boutiqueId}/transactions?transactionId=${id}`, {
-                method: "DELETE",
-            })
-            if (reponse.ok) {
-                toast.success("Transaction supprimée")
-                router.refresh()
+
+        const result = await mutationOffline({
+            url: `/api/boutiques/${boutiqueId}/transactions?transactionId=${id}`,
+            method: 'DELETE',
+            tag: 'transaction:supprimer',
+            donneeLocale: id,
+            onOffline: (txId) => {
+                setListeTransactions((prev) => prev.filter(t => t.id !== txId))
+                toast.warning('Suppression enregistrée localement')
+            },
+            onSuccess: async () => {
+                await deleteTransactionLocale(id)
+            },
+        })
+
+        if (result.source === 'network') {
+            if (result.ok) {
+                setListeTransactions((prev) => prev.filter(t => t.id !== id))
+                await deleteTransactionLocale(id)
+                toast.success('Transaction supprimée')
+            } else {
+                toast.error('Erreur lors de la suppression')
             }
-        } catch {
-            toast.error("Erreur")
-        } finally {
-            setActionEnCours(null)
         }
+
+        setActionEnCours(null)
     }
 
     const getDateValue = (date: Date | string) => {
@@ -187,11 +225,17 @@ export function ListeTransactions({
                                 <td className="py-3 text-sm">
                                     {format(getDateValue(t.dateTransaction), "dd/MM/yyyy HH:mm", { locale: fr })}
                                 </td>
-                                <td className="py-3 text-sm">{t.type}</td>
+                                <td className="py-3 text-sm">
+                                    <Badge className={t.type === "VERSEMENT"
+                                        ? "bg-orange-100 text-orange-800 hover:bg-orange-100"
+                                        : "bg-red-100 text-red-800 hover:bg-red-100"
+                                    }>
+                                        {t.type === "VERSEMENT" ? "Versement" : "Dépense"}
+                                    </Badge>
+                                </td>
                                 <td className="py-3 text-sm max-w-[200px] truncate">{t.description || "-"}</td>
-                                <td className={`py-3 text-sm text-right font-bold ${["VERSEMENT"].includes(t.type) ? "text-green-600" : "text-red-600"
-                                    }`}>
-                                    {["VERSEMENT"].includes(t.type) ? "+" : "-"}{t.montant.toFixed(2)} FCFA
+                                <td className={`py-3 text-sm text-right font-bold ${t.type === "VERSEMENT" ? "text-orange-600" : "text-red-600"}`}>
+                                    -{formatMontant(t.montant)}
                                 </td>
                                 <td className="py-3">
                                     <Badge variant={t.verifiee ? "default" : "secondary"}>
@@ -218,6 +262,32 @@ export function ListeTransactions({
                                 )}
                             </tr>
                         ))}
+                        {/* Totaux dans le tableau */}
+                        {transactionsFiltrees.length > 0 && (() => {
+                            const totalV = transactionsFiltrees.filter(t => t.type === "VERSEMENT").reduce((s, t) => s + t.montant, 0)
+                            const totalD = transactionsFiltrees.filter(t => t.type === "DEPENSE").reduce((s, t) => s + t.montant, 0)
+                            const total = totalV + totalD
+                            const cols = estCommercant ? 6 : 5
+                            return (
+                                <>
+                                    <tr className="bg-gray-50 border-t">
+                                        <td colSpan={3} className="py-2 text-sm text-gray-500 pl-1">Versements</td>
+                                        <td className="py-2 text-right text-sm font-semibold text-orange-600">-{formatMontant(totalV)}</td>
+                                        <td colSpan={cols - 4} />
+                                    </tr>
+                                    <tr className="bg-gray-50">
+                                        <td colSpan={3} className="py-2 text-sm text-gray-500 pl-1">Dépenses</td>
+                                        <td className="py-2 text-right text-sm font-semibold text-red-600">-{formatMontant(totalD)}</td>
+                                        <td colSpan={cols - 4} />
+                                    </tr>
+                                    <tr className="bg-gray-100 border-t-2 border-gray-300">
+                                        <td colSpan={3} className="py-2.5 text-sm font-bold text-gray-800 pl-1">Total transactions</td>
+                                        <td className="py-2.5 text-right text-sm font-bold text-gray-900">-{formatMontant(total)}</td>
+                                        <td colSpan={cols - 4} />
+                                    </tr>
+                                </>
+                            )
+                        })()}
                     </tbody>
                 </table>
             </div>
@@ -227,9 +297,11 @@ export function ListeTransactions({
                 {transactionsFiltrees.map((t) => (
                     <div key={t.id} className="bg-white border rounded-lg p-4 space-y-2">
                         <div className="flex justify-between">
-                            <span className="text-sm">{t.type}</span>
-                            <span className={`font-bold ${["VERSEMENT"].includes(t.type) ? "text-green-600" : "text-red-600"}`}>
-                                {["VERSEMENT"].includes(t.type) ? "+" : "-"}{t.montant.toFixed(2)} FCFA
+                            <span className="text-sm font-medium">
+                                {t.type === "VERSEMENT" ? "Versement" : "Dépense"}
+                            </span>
+                            <span className={`font-bold ${t.type === "VERSEMENT" ? "text-orange-600" : "text-red-600"}`}>
+                                -{formatMontant(t.montant)}
                             </span>
                         </div>
                         <p className="text-xs text-gray-500">{format(getDateValue(t.dateTransaction), "dd/MM/yyyy HH:mm", { locale: fr })}</p>
@@ -250,6 +322,34 @@ export function ListeTransactions({
                     </div>
                 ))}
             </div>
+
+            {/* Totaux fixes en bas */}
+            {transactionsFiltrees.length > 0 && (() => {
+                const totalVersements = transactionsFiltrees
+                    .filter(t => t.type === "VERSEMENT")
+                    .reduce((s, t) => s + t.montant, 0)
+                const totalDepenses = transactionsFiltrees
+                    .filter(t => t.type === "DEPENSE")
+                    .reduce((s, t) => s + t.montant, 0)
+                const total = totalVersements + totalDepenses
+
+                return (
+                    <div className="border-t bg-gray-50 rounded-b-lg px-4 py-3 space-y-1.5">
+                        <div className="flex justify-between text-sm">
+                            <span className="text-gray-500">Total versements</span>
+                            <span className="font-semibold text-orange-600">-{formatMontant(totalVersements)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                            <span className="text-gray-500">Total dépenses</span>
+                            <span className="font-semibold text-red-600">-{formatMontant(totalDepenses)}</span>
+                        </div>
+                        <div className="flex justify-between border-t pt-1.5">
+                            <span className="text-sm font-medium text-gray-700">Total transactions</span>
+                            <span className="text-base font-bold text-gray-900">-{formatMontant(total)}</span>
+                        </div>
+                    </div>
+                )
+            })()}
         </div>
     )
 }

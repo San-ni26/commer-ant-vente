@@ -20,7 +20,9 @@ import Link from "next/link"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { differenceInDays } from "date-fns"
-import { cn } from "@/lib/utils"
+import { cn, formatMontant } from "@/lib/utils"
+import { mutationOffline } from "@/lib/offline/fetch-offline"
+import { saveBoutiqueLocale, deleteBoutiqueLocale } from "@/lib/offline/db"
 
 type Boutique = {
     id: string
@@ -104,6 +106,7 @@ function BanniereBloquees({ nombre }: { nombre: number }) {
 
 export function GestionBoutiques({ boutiques, onRefresh }: GestionBoutiquesProps) {
     const router = useRouter()
+    const [listeBoutiques, setListeBoutiques] = useState<Boutique[]>(boutiques)
     const [ouvertCreer, setOuvertCreer] = useState(false)
     const [ouvertEdit, setOuvertEdit] = useState(false)
     const [chargement, setChargement] = useState(false)
@@ -113,67 +116,120 @@ export function GestionBoutiques({ boutiques, onRefresh }: GestionBoutiquesProps
     const creerBoutique = async (e: React.FormEvent) => {
         e.preventDefault()
         setChargement(true)
-        try {
-            const reponse = await fetch("/api/boutiques", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(donnees),
-            })
-            if (reponse.ok) {
-                toast.success("Boutique créée")
-                setOuvertCreer(false)
-                setDonnees({ nom: "" })
-                onRefresh ? onRefresh() : router.refresh()
-            } else {
-                toast.error("Erreur lors de la création")
-            }
-        } catch {
-            toast.error("Erreur de connexion")
-        } finally {
-            setChargement(false)
+
+        // Optimistic update hors ligne
+        const idTemp = `temp_boutique_${Date.now()}`
+        const boutiqueTmp: Boutique = {
+            id: idTemp,
+            nom: donnees.nom,
+            solde: 0,
+            _count: { ventes: 0, employes: 0 },
+            gerant: null,
+            abonnement: null,
+            abonnementActif: false,
         }
+
+        const result = await mutationOffline({
+            url: '/api/boutiques',
+            method: 'POST',
+            body: donnees,
+            tag: 'boutique:creer',
+            localId: idTemp,
+            donneeLocale: boutiqueTmp,
+            onOffline: (b) => {
+                setListeBoutiques((prev) => [...prev, b])
+                toast.warning('Boutique enregistrée localement — synchronisation dès la reconnexion')
+            },
+            onSuccess: async (data: any) => {
+                await saveBoutiqueLocale({ ...data, syncedAt: Date.now() })
+            },
+        })
+
+        if (result.source === 'network') {
+            if (result.ok) {
+                const data = result.data as any
+                setListeBoutiques((prev) => [...prev, { ...boutiqueTmp, id: data.id }])
+                toast.success('Boutique créée')
+            } else {
+                toast.error(result.error || 'Erreur lors de la création')
+                setChargement(false)
+                return
+            }
+        }
+
+        setOuvertCreer(false)
+        setDonnees({ nom: '' })
+        setChargement(false)
+        onRefresh?.()
     }
 
     const editerBoutique = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!editBoutique) return
         setChargement(true)
-        try {
-            const reponse = await fetch(`/api/boutiques/${editBoutique.id}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(donnees),
-            })
-            if (reponse.ok) {
-                toast.success("Boutique modifiée")
-                setOuvertEdit(false)
-                onRefresh ? onRefresh() : router.refresh()
+
+        const result = await mutationOffline({
+            url: `/api/boutiques/${editBoutique.id}`,
+            method: 'PUT',
+            body: donnees,
+            tag: 'boutique:modifier',
+            donneeLocale: { ...editBoutique, nom: donnees.nom },
+            onOffline: (b) => {
+                setListeBoutiques((prev) => prev.map(x => x.id === b.id ? b : x))
+                toast.warning('Modification enregistrée localement')
+            },
+            onSuccess: async (data: any) => {
+                await saveBoutiqueLocale({ ...data, syncedAt: Date.now() })
+            },
+        })
+
+        if (result.source === 'network') {
+            if (result.ok) {
+                setListeBoutiques((prev) => prev.map(x => x.id === editBoutique.id ? { ...x, nom: donnees.nom } : x))
+                toast.success('Boutique modifiée')
             } else {
-                toast.error("Erreur lors de la modification")
+                toast.error(result.error || 'Erreur lors de la modification')
+                setChargement(false)
+                return
             }
-        } catch {
-            toast.error("Erreur de connexion")
-        } finally {
-            setChargement(false)
         }
+
+        setOuvertEdit(false)
+        setChargement(false)
+        onRefresh?.()
     }
 
     const supprimerBoutique = async (id: string) => {
-        if (!confirm("Supprimer cette boutique ? Les données seront perdues.")) return
-        try {
-            const reponse = await fetch(`/api/boutiques/${id}`, { method: "DELETE" })
-            if (reponse.ok) {
-                toast.success("Boutique supprimée")
-                onRefresh ? onRefresh() : router.refresh()
+        if (!confirm('Supprimer cette boutique ? Les données seront perdues.')) return
+
+        const result = await mutationOffline({
+            url: `/api/boutiques/${id}`,
+            method: 'DELETE',
+            tag: 'boutique:supprimer',
+            donneeLocale: id,
+            onOffline: (boutiqueId) => {
+                setListeBoutiques((prev) => prev.filter(x => x.id !== boutiqueId))
+                toast.warning('Suppression enregistrée localement')
+            },
+            onSuccess: async () => {
+                await deleteBoutiqueLocale(id)
+            },
+        })
+
+        if (result.source === 'network') {
+            if (result.ok) {
+                setListeBoutiques((prev) => prev.filter(x => x.id !== id))
+                await deleteBoutiqueLocale(id)
+                toast.success('Boutique supprimée')
             } else {
-                toast.error("Erreur lors de la suppression")
+                toast.error(result.error || 'Erreur lors de la suppression')
             }
-        } catch {
-            toast.error("Erreur de connexion")
         }
+
+        onRefresh?.()
     }
 
-    const nombreBoutiquesBloquees = boutiques.filter(b => !b.abonnementActif).length
+    const nombreBoutiquesBloquees = listeBoutiques.filter(b => !b.abonnementActif).length
 
     return (
         <div className="space-y-4">
@@ -252,7 +308,7 @@ export function GestionBoutiques({ boutiques, onRefresh }: GestionBoutiquesProps
             </Dialog>
 
             {/* Liste des boutiques */}
-            {boutiques.length === 0 ? (
+            {listeBoutiques.length === 0 ? (
                 <Card>
                     <CardContent className="py-12 text-center">
                         <Store className="h-12 w-12 text-gray-300 mx-auto mb-4" />
@@ -262,7 +318,7 @@ export function GestionBoutiques({ boutiques, onRefresh }: GestionBoutiquesProps
                 </Card>
             ) : (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {boutiques.map((boutique) => (
+                    {listeBoutiques.map((boutique) => (
                         <Card 
                             key={boutique.id} 
                             className={cn(
@@ -302,7 +358,7 @@ export function GestionBoutiques({ boutiques, onRefresh }: GestionBoutiquesProps
                             <CardContent>
                                 <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
                                     <Badge variant="default">
-                                        {boutique.solde.toFixed(2)} FCFA
+                                        {formatMontant(boutique.solde)}
                                     </Badge>
                                     <BadgeAbonnement boutique={boutique} />
                                 </div>

@@ -2,9 +2,9 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Commerce Vente',
-    short_name: 'CommerceVente',
-    description: 'Digitalisez votre commerce en toute simplicité',
+    name: 'Kephalé BS',
+    short_name: 'Kephalé BS',
+    description: 'Kephalé BS — Business Sales, gérez votre commerce en toute simplicité',
     start_url: '/',
     display: 'standalone',
     background_color: '#111827',
