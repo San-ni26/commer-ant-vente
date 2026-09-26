@@ -334,37 +334,39 @@ export async function compterQueue(): Promise<number> {
  */
 export async function nettoyerDonneesLocales(): Promise<void> {
   try {
-    const db = await getDB()
-    const tx = db.transaction(
-      ['boutiques', 'ventes', 'transactions', 'employes', 'sync_queue'],
-      'readwrite'
-    )
-
-    await Promise.all([
-      tx.objectStore('boutiques').clear(),
-      tx.objectStore('ventes').clear(),
-      tx.objectStore('transactions').clear(),
-      tx.objectStore('employes').clear(),
-      tx.objectStore('sync_queue').clear(),
-      tx.done,
-    ])
-
-    // Invalider le marqueur de préchargement
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('preload_completed')
+    // 1. Fermer et supprimer la base de données IndexedDB
+    if (dbPromise) {
+      const db = await dbPromise
+      db.close()
+      dbPromise = null
+    }
+    if (typeof window !== 'undefined' && 'indexedDB' in window) {
+      indexedDB.deleteDatabase(DB_NAME)
     }
 
-    // Vider les caches Service Worker de données
+    // 2. Nettoyer localStorage et sessionStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('preload_completed')
+      localStorage.clear()
+      sessionStorage.clear()
+    }
+
+    // 3. Supprimer TOUS les caches Service Worker (api, pages, static, offline, etc.)
     if (typeof window !== 'undefined' && 'caches' in window) {
       const cacheNames = await caches.keys()
       await Promise.all(
         cacheNames
-          .filter(name => name.includes('kbs-api-read') || name.includes('kbs-pages'))
+          .filter(name => name.startsWith('kbs-') || name.includes('api') || name.includes('page'))
           .map(name => caches.delete(name))
       )
+
+      // Envoyer également un message au Service Worker pour forcer le nettoyage total s'il est actif
+      if (navigator.serviceWorker?.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_ALL_CACHES' })
+      }
     }
 
-    console.log('[DB] Données locales nettoyées après déconnexion')
+    console.log('[DB] Nettoyage total de toutes les données locales et caches effectué.')
   } catch (erreur) {
     console.error('[DB] Erreur nettoyage:', erreur)
   }

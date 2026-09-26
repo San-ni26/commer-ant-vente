@@ -24,7 +24,11 @@ export type PreloadCallback = (progress: PreloadProgress) => void
 /**
  * Précharge les pages HTML dans le Service Worker
  */
-async function prechargerPagesHTML(role: string, boutiqueId?: string | null): Promise<void> {
+async function prechargerPagesHTML(
+  role: string,
+  boutiques?: { id: string }[] | null,
+  boutiqueId?: string | null
+): Promise<void> {
   const pagesToCache: string[] = []
 
   if (role === "COMMERCANT" || role === "ADMIN") {
@@ -34,6 +38,17 @@ async function prechargerPagesHTML(role: string, boutiqueId?: string | null): Pr
       "/commercant/employes",
       "/commercant/rapports"
     )
+
+    // Ajouter les pages spécifiques pour chaque boutique du commerçant
+    if (boutiques && boutiques.length > 0) {
+      for (const b of boutiques) {
+        pagesToCache.push(
+          `/commercant/boutiques/${b.id}`,
+          `/commercant/boutiques/${b.id}/ventes`,
+          `/commercant/boutiques/${b.id}/transactions`
+        )
+      }
+    }
   } else if (role === "EMPLOYE" && boutiqueId) {
     pagesToCache.push(
       "/employe",
@@ -51,7 +66,7 @@ async function prechargerPagesHTML(role: string, boutiqueId?: string | null): Pr
           headers: { "Accept": "text/html" },
         })
         // Petit délai pour ne pas surcharger
-        await new Promise(resolve => setTimeout(resolve, 100))
+        await new Promise(resolve => setTimeout(resolve, 50))
       } catch (err) {
         console.warn(`[Preload] Échec préchargement page ${url}:`, err)
       }
@@ -240,7 +255,7 @@ export async function prechargerDonneesCommercant(
 
     // Étape 5 : Précharger les pages HTML dans le Service Worker
     rapporterProgression(etapes[4].nom, progressionTotale)
-    await prechargerPagesHTML("COMMERCANT")
+    await prechargerPagesHTML("COMMERCANT", boutiques)
     progressionTotale += etapes[4].poids
     rapporterProgression(etapes[4].nom, progressionTotale)
 
@@ -336,7 +351,7 @@ export async function prechargerDonneesEmploye(
 
     // Étape 3 : Précharger les pages HTML
     rapporterProgression(etapes[2].nom, progressionTotale)
-    await prechargerPagesHTML("EMPLOYE", boutiqueId)
+    await prechargerPagesHTML("EMPLOYE", null, boutiqueId)
     progressionTotale += etapes[2].poids
     rapporterProgression(etapes[2].nom, progressionTotale)
 
