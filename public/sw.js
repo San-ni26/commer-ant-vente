@@ -1,7 +1,7 @@
-// public/sw.js — Service Worker v8 — Kephalé BS
-// v8 : Timeout réseau universel (4s) + détection offline Safari + notifs SW_CONNECTIVITY
+// public/sw.js — Service Worker v7 — Kephalé BS
+// v7 : Cache First agressif sur toutes les pages dashboard — navigation offline complète
 
-const SW_VERSION = 'v8'
+const SW_VERSION = 'v7'
 const CACHES = {
   static:  `kbs-static-${SW_VERSION}`,
   pages:   `kbs-pages-${SW_VERSION}`,
@@ -101,33 +101,6 @@ const OFFLINE_HTML = `<!DOCTYPE html>
 // ─────────────────────────────────────────────
 // UTILITAIRES
 // ─────────────────────────────────────────────
-
-/**
- * fetch() avec un timeout strict via AbortController.
- * Sans cela, Safari attend 75s+ sur coupure réseau avant de lever une erreur.
- * @param {Request|string} request
- * @param {number} timeoutMs — 4000ms par défaut
- */
-async function fetchAvecTimeout(request, timeoutMs = 4000) {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), timeoutMs)
-  try {
-    const response = await fetch(request, { signal: controller.signal })
-    clearTimeout(timer)
-    return response
-  } catch (err) {
-    clearTimeout(timer)
-    throw err
-  }
-}
-
-/**
- * Notifie tous les onglets ouverts de l'état de connectivité réelle.
- * Utilisé pour synchroniser useOnlineStatus() sur Safari.
- */
-async function notifierConnectivite(online) {
-  await notifierClients({ type: 'SW_CONNECTIVITY', online })
-}
 
 function stampResponse(response) {
   const headers = new Headers(response.headers)
@@ -268,10 +241,6 @@ self.addEventListener('fetch', (event) => {
     request.headers.get('upgrade') === 'websocket'
   ) return
 
-  // Ping de connectivité (header X-Ping) → bypass SW, va directement au réseau
-  // Nécessaire pour que useOnlineStatus() mesure la vraie connexion Internet
-  if (request.headers.get('X-Ping') === '1') return
-
   // Déconnexion → vider caches de session
   if (url.pathname.includes('/api/auth/signout')) {
     event.waitUntil(
@@ -379,24 +348,19 @@ async function cacheFirstRevalidate(request) {
   const cacheKey = getCacheKey(request)
   const cached = await cache.match(cacheKey, { ignoreVary: true })
 
-  // Revalidation avec timeout 4s — Safari sinon attend 75s+ sur coupure réseau
-  const revalidate = fetchAvecTimeout(request, 4000)
+  // Toujours revalider en arrière-plan si en ligne
+  const revalidate = fetch(request)
     .then(async (response) => {
       if (response.ok) {
         await cache.put(cacheKey, stampResponse(response.clone()))
-        // Réseau ok → notifier les onglets
-        notifierConnectivite(true).catch(() => {})
       }
       return response
     })
-    .catch(async () => {
-      // Échec réseau → notifier les onglets (offline détecté)
-      notifierConnectivite(false).catch(() => {})
-      return null
-    })
+    .catch(() => null)
 
-  // Cache disponible → servir immédiatement + revalider en arrière-plan
+  // Hors ligne OU cache disponible → servir le cache immédiatement
   if (cached) {
+    // Lancer la revalidation en arrière-plan (fire & forget)
     revalidate.catch(() => {})
     return cached
   }
@@ -405,6 +369,7 @@ async function cacheFirstRevalidate(request) {
   try {
     const response = await revalidate
     if (response && response.ok) return response
+    // Réseau KO et pas de cache → fallback minimal
     return offlineFallback(request)
   } catch {
     return offlineFallback(request)
@@ -414,18 +379,14 @@ async function cacheFirstRevalidate(request) {
 /** API Network First : réseau d'abord, fallback sur cache 24h */
 async function apiNetworkFirst(request) {
   try {
-    // Timeout 4s — Safari sinon bloque sur coupure réseau
-    const response = await fetchAvecTimeout(request, 4000)
+    const response = await fetch(request)
     if (response.ok) {
       const cache = await caches.open(CACHES.apiRead)
       await cache.put(request, stampResponse(response.clone()))
       trimCache(CACHES.apiRead, CACHE_LIMITS.apiRead)
-      notifierConnectivite(true).catch(() => {})
     }
     return response
   } catch {
-    // Réseau KO → notifier + fallback cache
-    notifierConnectivite(false).catch(() => {})
     const cache = await caches.open(CACHES.apiRead)
     const cached = await cache.match(request)
     if (cached && !isExpired(cached, EXPIRY.apiRead)) {
