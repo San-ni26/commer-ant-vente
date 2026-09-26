@@ -1,5 +1,8 @@
 // lib/offline/db.ts
 // Base de données locale IndexedDB pour le mode hors-ligne
+// ⚠️  Ce module est BROWSER-ONLY. Il ne doit jamais s'exécuter côté serveur.
+//     Le fichier `idb-stub.ts` est utilisé à la place par Turbopack (via next.config.ts)
+//     pour éviter l'erreur "enqueueModel is not a function".
 import { openDB, type IDBPDatabase } from 'idb'
 
 const DB_NAME = 'kephale-bs-offline'

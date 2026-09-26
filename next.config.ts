@@ -1,6 +1,12 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
+  // Prevent the browser-only `idb` package from being traced into the
+  // server bundle — root cause of the Turbopack
+  // "chunk.reason.enqueueModel is not a function" RSC error.
+  serverExternalPackages: ['idb'],
+
+
   compress: true,
   poweredByHeader: false,
   generateEtags: true,
