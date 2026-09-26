@@ -83,25 +83,42 @@ export function VentesBoutiqueClient({ boutiqueId }: Props) {
   const chargerTransactions = useCallback(async () => {
     setChargementTransactions(true)
     try {
-      const { data } = await fetchAvecCache<Transaction[]>(
-        `/api/boutiques/${boutiqueId}/transactions`,
-        async () => {
+      // L'API retourne { transactions, totaux } — on fetch directement sans fetchAvecCache
+      let txArray: Transaction[] = []
+
+      if (typeof window !== "undefined" && !navigator.onLine) {
+        // Hors ligne : lire IndexedDB
+        const locales = await getTransactionsLocales(boutiqueId)
+        txArray = locales as any[]
+      } else {
+        try {
+          const reponse = await fetch(`/api/boutiques/${boutiqueId}/transactions`, {
+            cache: "no-store",
+          })
+          if (reponse.ok) {
+            const json = await reponse.json()
+            // L'API retourne { transactions, totaux }
+            txArray = Array.isArray(json) ? json : (json.transactions ?? [])
+          } else {
+            throw new Error(`HTTP ${reponse.status}`)
+          }
+        } catch {
+          // Réseau KO → fallback IndexedDB
           const locales = await getTransactionsLocales(boutiqueId)
-          return locales as any[]
-        },
-        async (data) => {}
-      )
-      // Filtrer pour garder uniquement VERSEMENT et DEPENSE
-      const transactionsFiltrees = data.filter(
-        t => t.type === "VERSEMENT" || t.type === "DEPENSE"
+          txArray = locales as any[]
+        }
+      }
+
+      // Garder uniquement VERSEMENT et DEPENSE
+      const transactionsFiltrees = txArray.filter(
+        (t: any) => t.type === "VERSEMENT" || t.type === "DEPENSE"
       )
       setTransactions(transactionsFiltrees)
     } catch {
       const locales = await getTransactionsLocales(boutiqueId)
-      const transactionsFiltrees = locales.filter(
-        (t: any) => t.type === "VERSEMENT" || t.type === "DEPENSE"
+      setTransactions(
+        locales.filter((t: any) => t.type === "VERSEMENT" || t.type === "DEPENSE") as any[]
       )
-      setTransactions(transactionsFiltrees as any[])
     } finally {
       setChargementTransactions(false)
     }

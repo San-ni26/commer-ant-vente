@@ -16,10 +16,26 @@ export function DashboardAuthGuard({ children }: DashboardAuthGuardProps) {
   const router = useRouter()
   const [showPreload, setShowPreload] = useState(false)
   const preloadChecked = useRef(false)
+  // Délai avant de rediriger — évite la redirection pendant l'hydratation
+  const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.replace("/connexion")
+      // Attendre 500ms avant de rediriger — évite les faux positifs
+      // pendant l'initialisation de la session côté client
+      redirectTimer.current = setTimeout(() => {
+        router.replace("/connexion")
+      }, 500)
+    } else {
+      // Session trouvée — annuler toute redirection en attente
+      if (redirectTimer.current) {
+        clearTimeout(redirectTimer.current)
+        redirectTimer.current = null
+      }
+    }
+
+    return () => {
+      if (redirectTimer.current) clearTimeout(redirectTimer.current)
     }
   }, [status, router])
 
@@ -27,14 +43,14 @@ export function DashboardAuthGuard({ children }: DashboardAuthGuardProps) {
   useEffect(() => {
     if (status === "authenticated" && session?.user && !preloadChecked.current) {
       preloadChecked.current = true
-      
-      // Vérifier si le préchargement a déjà été fait récemment (moins de 24h)
-      const dejaPrecharge = preloadEstRecent()
-      
-      if (!dejaPrecharge) {
-        // Afficher le modal de préchargement après un court délai
-        setTimeout(() => setShowPreload(true), 800)
-      }
+
+      // Petit délai pour laisser le localStorage se stabiliser après window.location.href
+      setTimeout(() => {
+        const dejaPrecharge = preloadEstRecent()
+        if (!dejaPrecharge) {
+          setShowPreload(true)
+        }
+      }, 1000)
     }
   }, [status, session])
 
@@ -42,6 +58,7 @@ export function DashboardAuthGuard({ children }: DashboardAuthGuardProps) {
     setShowPreload(false)
   }
 
+  // Pendant le chargement initial — afficher un spinner
   if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -53,6 +70,7 @@ export function DashboardAuthGuard({ children }: DashboardAuthGuardProps) {
     )
   }
 
+  // Pas de session → null (la redirection est en cours via useEffect)
   if (status === "unauthenticated" || !session?.user) {
     return null
   }

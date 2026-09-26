@@ -13,12 +13,39 @@ export async function enregistrerServiceWorker(): Promise<ServiceWorkerRegistrat
       updateViaCache: 'none', // Toujours vérifier les mises à jour du SW
     })
 
-    // Écouter les messages du service worker (SW_SYNC_REQUEST, SW_ACTIVE, etc.)
+    // Forcer l'activation immédiate si une nouvelle version est en attente
+    if (registration.waiting) {
+      registration.waiting.postMessage({ type: 'SKIP_WAITING' })
+    }
+
+    registration.addEventListener('updatefound', () => {
+      const newWorker = registration.installing
+      if (!newWorker) return
+
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          // Nouveau SW installé → activer immédiatement
+          newWorker.postMessage({ type: 'SKIP_WAITING' })
+        }
+      })
+    })
+
+    // Recharger quand le SW change (pour appliquer le nouveau cache)
+    let refreshing = false
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true
+        // Ne pas recharger automatiquement — évite les surprises utilisateur
+        console.log('[SW] Nouveau Service Worker activé (v8)')
+      }
+    })
+
+    // Écouter les messages du service worker
     navigator.serviceWorker.addEventListener('message', async (event) => {
       const { type } = event.data || {}
 
       if (type === 'SW_SYNC_REQUEST') {
-        // Le SW demande de déclencher la sync (Background Sync API)
+        // Le SW demande de déclencher la sync
         await syncQueue()
       }
 

@@ -82,9 +82,9 @@ export function FormulaireConnexion() {
                 toast.error("Email ou mot de passe incorrect")
             } else if (resultat?.ok) {
                 toast.success("Connexion réussie !")
-                // router.push = navigation client, ne passe pas par le proxy HTTP
-                router.push("/commercant")
-                router.refresh()
+                // window.location.href force un rechargement complet
+                // ce qui garantit que la session NextAuth est bien lue côté client
+                window.location.href = "/commercant"
             }
         } catch {
             toast.error("Erreur de connexion")
@@ -109,8 +109,7 @@ export function FormulaireConnexion() {
                 toast.error("Numéro ou code incorrect")
             } else if (resultat?.ok) {
                 toast.success("Connexion réussie !")
-                router.push("/employe")
-                router.refresh()
+                window.location.href = "/employe"
             }
         } catch {
             toast.error("Erreur de connexion")

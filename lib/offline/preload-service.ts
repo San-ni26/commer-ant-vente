@@ -158,7 +158,9 @@ export async function prechargerDonneesCommercant(
 
     // Étape 3 : Charger les ventes pour chaque boutique
     rapporterProgression(etapes[2].nom, progressionTotale)
-    const progressionParBoutique = etapes[2].poids / boutiques.length
+    const progressionParBoutique = boutiques.length > 0
+      ? etapes[2].poids / boutiques.length
+      : etapes[2].poids
 
     for (let i = 0; i < boutiques.length; i++) {
       const boutique = boutiques[i]
@@ -196,7 +198,7 @@ export async function prechargerDonneesCommercant(
 
     // Étape 4 : Charger les transactions pour chaque boutique
     rapporterProgression(etapes[3].nom, progressionTotale)
-    const progressionParBoutiqueTransactions = etapes[3].poids / boutiques.length
+    const progressionParBoutiqueTransactions = etapes[3].poids / Math.max(boutiques.length, 1)
 
     for (let i = 0; i < boutiques.length; i++) {
       const boutique = boutiques[i]
@@ -205,20 +207,25 @@ export async function prechargerDonneesCommercant(
           `/api/boutiques/${boutique.id}/transactions`
         )
         if (transactionsReponse.ok) {
-          const transactions: any[] = await transactionsReponse.json()
+          const json = await transactionsReponse.json()
+          // L'API retourne { transactions, totaux } — on extrait le tableau
+          const transactionsArray: any[] = Array.isArray(json)
+            ? json
+            : json.transactions ?? []
+
           await saveTransactionsLocales(
-            transactions.map(
+            transactionsArray.map(
               (t): TransactionLocale => ({
                 id: t.id,
                 type: t.type,
-                montant: t.amount || t.montant,
+                montant: t.montant ?? t.amount ?? 0,
                 description: t.description || null,
                 reference: t.reference || null,
-                dateTransaction: t.transactionDate || t.dateTransaction,
-                dateCreation: t.dateCreation || t.transactionDate || t.dateTransaction,
-                verifiee: t.verified || t.verifiee || false,
+                dateTransaction: t.dateTransaction ?? t.transactionDate ?? new Date().toISOString(),
+                dateCreation: t.dateCreation ?? t.dateTransaction ?? new Date().toISOString(),
+                verifiee: t.verifiee ?? t.verified ?? false,
                 boutiqueId: boutique.id,
-                verifieeParId: t.verifiedBy || t.verifieeParId || null,
+                verifieeParId: t.verifieeParId ?? t.verifiedBy ?? null,
                 syncedAt: Date.now(),
               })
             )
@@ -352,17 +359,22 @@ export async function prechargerDonneesEmploye(
 }
 
 /**
- * Vérifie si le préchargement a déjà été effectué (moins de 24h)
+ * Vérifie si le préchargement a déjà été effectué (moins de 8h)
+ * On réduit à 8h (au lieu de 24h) pour forcer un rafraîchissement plus fréquent
  */
 export function preloadEstRecent(): boolean {
+  if (typeof window === "undefined") return false
+
   const dernierPreload = localStorage.getItem("preload_completed")
   if (!dernierPreload) return false
-  
+
   const timestamp = parseInt(dernierPreload, 10)
+  if (isNaN(timestamp)) return false
+
   const age = Date.now() - timestamp
-  
-  // Préchargement valide pendant 24h
-  return age < 24 * 60 * 60 * 1000
+
+  // Préchargement valide pendant 8h seulement
+  return age < 8 * 60 * 60 * 1000
 }
 
 /**

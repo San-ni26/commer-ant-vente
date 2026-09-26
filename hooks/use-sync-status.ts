@@ -1,5 +1,5 @@
 // hooks/use-sync-status.ts
-// État de synchronisation — event-driven (pas de polling)
+// État de synchronisation — event-driven (pas de polling agressif)
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
@@ -19,6 +19,9 @@ export function useSyncStatus(): SyncStatus {
   const [isSyncing, setIsSyncing] = useState(false)
   const [lastSyncAt, setLastSyncAt] = useState<number | null>(null)
   const mounted = useRef(true)
+  // Garde en mémoire le dernier pendingCount pour ne mettre à jour lastSyncAt
+  // que si des éléments ont vraiment été synchronisés
+  const prevPendingCount = useRef(0)
 
   const refreshCount = useCallback(async () => {
     try {
@@ -34,7 +37,6 @@ export function useSyncStatus(): SyncStatus {
     if (mounted.current) setIsSyncing(true)
     try {
       await syncQueue()
-      if (mounted.current) setLastSyncAt(Date.now())
       await refreshCount()
     } finally {
       if (mounted.current) setIsSyncing(false)
@@ -47,17 +49,22 @@ export function useSyncStatus(): SyncStatus {
     // Lecture initiale du compteur
     refreshCount()
 
-    // Écouter la fin de chaque sync — mis à jour event-driven
+    // Écouter la fin de chaque sync — déclenché uniquement quand syncQueue() termine
     const unsub = onSyncComplete(async (result) => {
       if (!mounted.current) return
-      setLastSyncAt(Date.now())
       setIsSyncing(false)
-      // Rafraîchir après un court délai (IDB a besoin de terminer ses writes)
+
+      // Ne mettre lastSyncAt à jour QUE si des items ont été traités
+      // Évite le toast "synchronisé" à chaque navigation
+      if (result && (result.success > 0 || result.failed > 0)) {
+        setLastSyncAt(Date.now())
+      }
+
       setTimeout(refreshCount, 100)
     })
 
-    // Rafraîchir toutes les 10s (failsafe uniquement — pas pour isSyncing)
-    const interval = setInterval(refreshCount, 10_000)
+    // Failsafe toutes les 30s — pas 10s pour ne pas saturer
+    const interval = setInterval(refreshCount, 30_000)
 
     return () => {
       mounted.current = false
@@ -65,6 +72,14 @@ export function useSyncStatus(): SyncStatus {
       clearInterval(interval)
     }
   }, [refreshCount])
+
+  // Détecter une vraie sync (pendingCount qui diminue)
+  useEffect(() => {
+    if (prevPendingCount.current > 0 && pendingCount === 0 && !isSyncing) {
+      setLastSyncAt(Date.now())
+    }
+    prevPendingCount.current = pendingCount
+  }, [pendingCount, isSyncing])
 
   return { pendingCount, isSyncing, lastSyncAt, forceSync, refreshCount }
 }
