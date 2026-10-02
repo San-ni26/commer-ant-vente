@@ -201,6 +201,8 @@ export function VentesBoutiqueClient({ boutiqueId }: Props) {
     montant: v.montant,
     description: v.description || null,
     dateVente: v.dateVente,
+    nomEnregistrePar: (v as any).nomEnregistrePar || null,
+    roleEnregistrePar: (v as any).roleEnregistrePar || null,
     enregistrePar: v.enregistrePar || { nom: "Commerçant", prenom: "" }
   }))
 

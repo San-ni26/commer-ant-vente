@@ -63,15 +63,17 @@ model Employe {
 }
 
 model Vente {
-  id              String      @id @default(cuid())
-  montant         Float
-  description     String?
-  boutiqueId      String
-  enregistreParId String
-  dateVente       DateTime    @default(now())
-  dateCreation    DateTime    @default(now())
-  boutique        Boutique    @relation(fields: [boutiqueId], references: [id])
-  enregistrePar   Utilisateur @relation(fields: [enregistreParId], references: [id])
+  id                String      @id @default(cuid())
+  montant           Float
+  description       String?
+  boutiqueId        String
+  enregistreParId   String
+  nomEnregistrePar  String?     // Nom réel de qui a enregistré (commerçant OU employé)
+  roleEnregistrePar String?     // "COMMERCANT" ou "EMPLOYE"
+  dateVente         DateTime    @default(now())
+  dateCreation      DateTime    @default(now())
+  boutique          Boutique    @relation(fields: [boutiqueId], references: [id])
+  enregistrePar     Utilisateur @relation(fields: [enregistreParId], references: [id])
 
   @@index([boutiqueId, dateVente(sort: Desc)])
   @@index([enregistreParId, dateVente(sort: Desc)])

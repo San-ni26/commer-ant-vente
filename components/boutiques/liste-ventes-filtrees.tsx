@@ -10,7 +10,7 @@ import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
-import { formatMontant } from "@/lib/utils"
+import { formatMontant, getNomAuteurVente } from "@/lib/utils"
 import { mutationOffline } from "@/lib/offline/fetch-offline"
 import { deleteVenteLocale } from "@/lib/offline/db"
 
@@ -19,10 +19,12 @@ type Vente = {
     montant: number
     description: string | null
     dateVente: Date | string
-    enregistrePar: {
+    nomEnregistrePar?: string | null
+    roleEnregistrePar?: string | null
+    enregistrePar?: {
         nom: string
         prenom?: string | null
-    }
+    } | null
 }
 
 export function ListeVentesFiltrees({ ventes }: { ventes: Vente[] }) {
@@ -30,11 +32,14 @@ export function ListeVentesFiltrees({ ventes }: { ventes: Vente[] }) {
     const [recherche, setRecherche] = useState("")
     const [suppressionEnCours, setSuppressionEnCours] = useState<string | null>(null)
 
-    const ventesFiltrees = listeVentes.filter(v =>
-        v.description?.toLowerCase().includes(recherche.toLowerCase()) ||
-        v.montant.toString().includes(recherche) ||
-        v.enregistrePar.nom.toLowerCase().includes(recherche.toLowerCase())
-    )
+    const ventesFiltrees = listeVentes.filter(v => {
+        const nomAuteur = getNomAuteurVente(v).toLowerCase()
+        return (
+            v.description?.toLowerCase().includes(recherche.toLowerCase()) ||
+            v.montant.toString().includes(recherche) ||
+            nomAuteur.includes(recherche.toLowerCase())
+        )
+    })
 
     const total = ventesFiltrees.reduce((sum, v) => sum + v.montant, 0)
 
@@ -113,7 +118,7 @@ export function ListeVentesFiltrees({ ventes }: { ventes: Vente[] }) {
                                     <p className="text-xs text-gray-400">{format(getDate(v.dateVente), "HH:mm", { locale: fr })}</p>
                                 </td>
                                 <td className="py-3 text-sm max-w-[200px] truncate">{v.description || "-"}</td>
-                                <td className="py-3 text-sm">{v.enregistrePar.prenom || ""} {v.enregistrePar.nom}</td>
+                                <td className="py-3 text-sm">{getNomAuteurVente(v)}</td>
                                 <td className="py-3 text-sm text-right font-bold">
                                     {formatMontant(v.montant)}
                                 </td>
@@ -147,7 +152,7 @@ export function ListeVentesFiltrees({ ventes }: { ventes: Vente[] }) {
                         {v.description && <p className="text-sm">{v.description}</p>}
                         <div className="flex justify-between items-center">
                             <span className="text-xs text-gray-400">
-                                {v.enregistrePar.prenom || ""} {v.enregistrePar.nom}
+                                {getNomAuteurVente(v)}
                             </span>
                             <Button
                                 variant="ghost"

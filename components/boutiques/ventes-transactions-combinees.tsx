@@ -4,8 +4,7 @@
 import { useState, useMemo } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { formatMontant } from "@/lib/utils"
+import { formatMontant, getNomAuteurVente } from "@/lib/utils"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { Calendar, TrendingUp, TrendingDown, DollarSign } from "lucide-react"
@@ -15,7 +14,9 @@ interface Vente {
   montant: number
   description: string | null
   dateVente: string
-  enregistrePar: { nom: string; prenom: string }
+  nomEnregistrePar?: string | null
+  roleEnregistrePar?: string | null
+  enregistrePar?: { nom: string; prenom: string } | null
 }
 
 interface Transaction {
@@ -34,7 +35,7 @@ type ElementCombine = {
   description: string | null
   date: string
   reference?: string | null
-  enregistrePar?: { nom: string; prenom: string }
+  nomAuteur?: string | null
 }
 
 interface Props {
@@ -53,7 +54,7 @@ export function VentesTransactionsCombinees({ ventes, transactions, filtreActif 
       montant: v.montant,
       description: v.description,
       date: v.dateVente,
-      enregistrePar: v.enregistrePar,
+      nomAuteur: getNomAuteurVente(v),
     }))
 
     const transactionsMap: ElementCombine[] = transactions.map(t => ({
@@ -167,10 +168,8 @@ export function VentesTransactionsCombinees({ ventes, transactions, filtreActif 
               {element.description && (
                 <p className="text-sm text-gray-700 mb-1">{element.description}</p>
               )}
-              {element.enregistrePar && (
-                <p className="text-xs text-gray-500">
-                  Par {element.enregistrePar.prenom} {element.enregistrePar.nom}
-                </p>
+              {element.nomAuteur && (
+                <p className="text-xs text-gray-500">Par {element.nomAuteur}</p>
               )}
               {element.reference && (
                 <p className="text-xs text-gray-500">Réf: {element.reference}</p>

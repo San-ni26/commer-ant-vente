@@ -20,7 +20,7 @@ import {
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
-import { formatMontant } from "@/lib/utils"
+import { formatMontant, getNomAuteurVente } from "@/lib/utils"
 
 const MONTANTS_RAPIDES = [500, 1000, 2000, 5000, 10000, 20000, 50000]
 
@@ -29,7 +29,9 @@ interface VentesDuJour {
   montant: number
   description: string | null
   dateVente: string
-  enregistrePar: { nom: string; prenom: string } | null
+  nomEnregistrePar?: string | null
+  roleEnregistrePar?: string | null
+  enregistrePar?: { nom: string; prenom: string } | null
   enAttente?: boolean
 }
 
@@ -537,13 +539,7 @@ export function VentesEmployePageClient() {
                     </p>
                     <p className="text-xs text-gray-500">
                       {format(new Date(vente.dateVente), "HH:mm", { locale: fr })}
-                      {vente.enregistrePar && (
-                        <>
-                          {" "}
-                          • par {vente.enregistrePar.prenom || ""}{" "}
-                          {vente.enregistrePar.nom}
-                        </>
-                      )}
+                      {" "}• par {getNomAuteurVente(vente)}
                     </p>
                   </div>
                   <Badge variant="default">{formatMontant(vente.montant)}</Badge>

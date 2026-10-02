@@ -40,6 +40,8 @@ export type VenteMinAggregateOutputType = {
   description: string | null
   boutiqueId: string | null
   enregistreParId: string | null
+  nomEnregistrePar: string | null
+  roleEnregistrePar: string | null
   dateVente: Date | null
   dateCreation: Date | null
 }
@@ -50,6 +52,8 @@ export type VenteMaxAggregateOutputType = {
   description: string | null
   boutiqueId: string | null
   enregistreParId: string | null
+  nomEnregistrePar: string | null
+  roleEnregistrePar: string | null
   dateVente: Date | null
   dateCreation: Date | null
 }
@@ -60,6 +64,8 @@ export type VenteCountAggregateOutputType = {
   description: number
   boutiqueId: number
   enregistreParId: number
+  nomEnregistrePar: number
+  roleEnregistrePar: number
   dateVente: number
   dateCreation: number
   _all: number
@@ -80,6 +86,8 @@ export type VenteMinAggregateInputType = {
   description?: true
   boutiqueId?: true
   enregistreParId?: true
+  nomEnregistrePar?: true
+  roleEnregistrePar?: true
   dateVente?: true
   dateCreation?: true
 }
@@ -90,6 +98,8 @@ export type VenteMaxAggregateInputType = {
   description?: true
   boutiqueId?: true
   enregistreParId?: true
+  nomEnregistrePar?: true
+  roleEnregistrePar?: true
   dateVente?: true
   dateCreation?: true
 }
@@ -100,6 +110,8 @@ export type VenteCountAggregateInputType = {
   description?: true
   boutiqueId?: true
   enregistreParId?: true
+  nomEnregistrePar?: true
+  roleEnregistrePar?: true
   dateVente?: true
   dateCreation?: true
   _all?: true
@@ -197,6 +209,8 @@ export type VenteGroupByOutputType = {
   description: string | null
   boutiqueId: string
   enregistreParId: string
+  nomEnregistrePar: string | null
+  roleEnregistrePar: string | null
   dateVente: Date
   dateCreation: Date
   _count: VenteCountAggregateOutputType | null
@@ -230,6 +244,8 @@ export type VenteWhereInput = {
   description?: Prisma.StringNullableFilter<"Vente"> | string | null
   boutiqueId?: Prisma.StringFilter<"Vente"> | string
   enregistreParId?: Prisma.StringFilter<"Vente"> | string
+  nomEnregistrePar?: Prisma.StringNullableFilter<"Vente"> | string | null
+  roleEnregistrePar?: Prisma.StringNullableFilter<"Vente"> | string | null
   dateVente?: Prisma.DateTimeFilter<"Vente"> | Date | string
   dateCreation?: Prisma.DateTimeFilter<"Vente"> | Date | string
   boutique?: Prisma.XOR<Prisma.BoutiqueScalarRelationFilter, Prisma.BoutiqueWhereInput>
@@ -242,6 +258,8 @@ export type VenteOrderByWithRelationInput = {
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   boutiqueId?: Prisma.SortOrder
   enregistreParId?: Prisma.SortOrder
+  nomEnregistrePar?: Prisma.SortOrderInput | Prisma.SortOrder
+  roleEnregistrePar?: Prisma.SortOrderInput | Prisma.SortOrder
   dateVente?: Prisma.SortOrder
   dateCreation?: Prisma.SortOrder
   boutique?: Prisma.BoutiqueOrderByWithRelationInput
@@ -257,6 +275,8 @@ export type VenteWhereUniqueInput = Prisma.AtLeast<{
   description?: Prisma.StringNullableFilter<"Vente"> | string | null
   boutiqueId?: Prisma.StringFilter<"Vente"> | string
   enregistreParId?: Prisma.StringFilter<"Vente"> | string
+  nomEnregistrePar?: Prisma.StringNullableFilter<"Vente"> | string | null
+  roleEnregistrePar?: Prisma.StringNullableFilter<"Vente"> | string | null
   dateVente?: Prisma.DateTimeFilter<"Vente"> | Date | string
   dateCreation?: Prisma.DateTimeFilter<"Vente"> | Date | string
   boutique?: Prisma.XOR<Prisma.BoutiqueScalarRelationFilter, Prisma.BoutiqueWhereInput>
@@ -269,6 +289,8 @@ export type VenteOrderByWithAggregationInput = {
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   boutiqueId?: Prisma.SortOrder
   enregistreParId?: Prisma.SortOrder
+  nomEnregistrePar?: Prisma.SortOrderInput | Prisma.SortOrder
+  roleEnregistrePar?: Prisma.SortOrderInput | Prisma.SortOrder
   dateVente?: Prisma.SortOrder
   dateCreation?: Prisma.SortOrder
   _count?: Prisma.VenteCountOrderByAggregateInput
@@ -287,6 +309,8 @@ export type VenteScalarWhereWithAggregatesInput = {
   description?: Prisma.StringNullableWithAggregatesFilter<"Vente"> | string | null
   boutiqueId?: Prisma.StringWithAggregatesFilter<"Vente"> | string
   enregistreParId?: Prisma.StringWithAggregatesFilter<"Vente"> | string
+  nomEnregistrePar?: Prisma.StringNullableWithAggregatesFilter<"Vente"> | string | null
+  roleEnregistrePar?: Prisma.StringNullableWithAggregatesFilter<"Vente"> | string | null
   dateVente?: Prisma.DateTimeWithAggregatesFilter<"Vente"> | Date | string
   dateCreation?: Prisma.DateTimeWithAggregatesFilter<"Vente"> | Date | string
 }
@@ -295,6 +319,8 @@ export type VenteCreateInput = {
   id?: string
   montant: number
   description?: string | null
+  nomEnregistrePar?: string | null
+  roleEnregistrePar?: string | null
   dateVente?: Date | string
   dateCreation?: Date | string
   boutique: Prisma.BoutiqueCreateNestedOneWithoutVentesInput
@@ -307,6 +333,8 @@ export type VenteUncheckedCreateInput = {
   description?: string | null
   boutiqueId: string
   enregistreParId: string
+  nomEnregistrePar?: string | null
+  roleEnregistrePar?: string | null
   dateVente?: Date | string
   dateCreation?: Date | string
 }
@@ -315,6 +343,8 @@ export type VenteUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   montant?: Prisma.FloatFieldUpdateOperationsInput | number
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nomEnregistrePar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  roleEnregistrePar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateVente?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   dateCreation?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   boutique?: Prisma.BoutiqueUpdateOneRequiredWithoutVentesNestedInput
@@ -327,6 +357,8 @@ export type VenteUncheckedUpdateInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   boutiqueId?: Prisma.StringFieldUpdateOperationsInput | string
   enregistreParId?: Prisma.StringFieldUpdateOperationsInput | string
+  nomEnregistrePar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  roleEnregistrePar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateVente?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   dateCreation?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -337,6 +369,8 @@ export type VenteCreateManyInput = {
   description?: string | null
   boutiqueId: string
   enregistreParId: string
+  nomEnregistrePar?: string | null
+  roleEnregistrePar?: string | null
   dateVente?: Date | string
   dateCreation?: Date | string
 }
@@ -345,6 +379,8 @@ export type VenteUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   montant?: Prisma.FloatFieldUpdateOperationsInput | number
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nomEnregistrePar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  roleEnregistrePar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateVente?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   dateCreation?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -355,6 +391,8 @@ export type VenteUncheckedUpdateManyInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   boutiqueId?: Prisma.StringFieldUpdateOperationsInput | string
   enregistreParId?: Prisma.StringFieldUpdateOperationsInput | string
+  nomEnregistrePar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  roleEnregistrePar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateVente?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   dateCreation?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -375,6 +413,8 @@ export type VenteCountOrderByAggregateInput = {
   description?: Prisma.SortOrder
   boutiqueId?: Prisma.SortOrder
   enregistreParId?: Prisma.SortOrder
+  nomEnregistrePar?: Prisma.SortOrder
+  roleEnregistrePar?: Prisma.SortOrder
   dateVente?: Prisma.SortOrder
   dateCreation?: Prisma.SortOrder
 }
@@ -389,6 +429,8 @@ export type VenteMaxOrderByAggregateInput = {
   description?: Prisma.SortOrder
   boutiqueId?: Prisma.SortOrder
   enregistreParId?: Prisma.SortOrder
+  nomEnregistrePar?: Prisma.SortOrder
+  roleEnregistrePar?: Prisma.SortOrder
   dateVente?: Prisma.SortOrder
   dateCreation?: Prisma.SortOrder
 }
@@ -399,6 +441,8 @@ export type VenteMinOrderByAggregateInput = {
   description?: Prisma.SortOrder
   boutiqueId?: Prisma.SortOrder
   enregistreParId?: Prisma.SortOrder
+  nomEnregistrePar?: Prisma.SortOrder
+  roleEnregistrePar?: Prisma.SortOrder
   dateVente?: Prisma.SortOrder
   dateCreation?: Prisma.SortOrder
 }
@@ -495,6 +539,8 @@ export type VenteCreateWithoutEnregistreParInput = {
   id?: string
   montant: number
   description?: string | null
+  nomEnregistrePar?: string | null
+  roleEnregistrePar?: string | null
   dateVente?: Date | string
   dateCreation?: Date | string
   boutique: Prisma.BoutiqueCreateNestedOneWithoutVentesInput
@@ -505,6 +551,8 @@ export type VenteUncheckedCreateWithoutEnregistreParInput = {
   montant: number
   description?: string | null
   boutiqueId: string
+  nomEnregistrePar?: string | null
+  roleEnregistrePar?: string | null
   dateVente?: Date | string
   dateCreation?: Date | string
 }
@@ -544,6 +592,8 @@ export type VenteScalarWhereInput = {
   description?: Prisma.StringNullableFilter<"Vente"> | string | null
   boutiqueId?: Prisma.StringFilter<"Vente"> | string
   enregistreParId?: Prisma.StringFilter<"Vente"> | string
+  nomEnregistrePar?: Prisma.StringNullableFilter<"Vente"> | string | null
+  roleEnregistrePar?: Prisma.StringNullableFilter<"Vente"> | string | null
   dateVente?: Prisma.DateTimeFilter<"Vente"> | Date | string
   dateCreation?: Prisma.DateTimeFilter<"Vente"> | Date | string
 }
@@ -552,6 +602,8 @@ export type VenteCreateWithoutBoutiqueInput = {
   id?: string
   montant: number
   description?: string | null
+  nomEnregistrePar?: string | null
+  roleEnregistrePar?: string | null
   dateVente?: Date | string
   dateCreation?: Date | string
   enregistrePar: Prisma.UtilisateurCreateNestedOneWithoutVentesInput
@@ -562,6 +614,8 @@ export type VenteUncheckedCreateWithoutBoutiqueInput = {
   montant: number
   description?: string | null
   enregistreParId: string
+  nomEnregistrePar?: string | null
+  roleEnregistrePar?: string | null
   dateVente?: Date | string
   dateCreation?: Date | string
 }
@@ -597,6 +651,8 @@ export type VenteCreateManyEnregistreParInput = {
   montant: number
   description?: string | null
   boutiqueId: string
+  nomEnregistrePar?: string | null
+  roleEnregistrePar?: string | null
   dateVente?: Date | string
   dateCreation?: Date | string
 }
@@ -605,6 +661,8 @@ export type VenteUpdateWithoutEnregistreParInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   montant?: Prisma.FloatFieldUpdateOperationsInput | number
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nomEnregistrePar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  roleEnregistrePar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateVente?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   dateCreation?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   boutique?: Prisma.BoutiqueUpdateOneRequiredWithoutVentesNestedInput
@@ -615,6 +673,8 @@ export type VenteUncheckedUpdateWithoutEnregistreParInput = {
   montant?: Prisma.FloatFieldUpdateOperationsInput | number
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   boutiqueId?: Prisma.StringFieldUpdateOperationsInput | string
+  nomEnregistrePar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  roleEnregistrePar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateVente?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   dateCreation?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -624,6 +684,8 @@ export type VenteUncheckedUpdateManyWithoutEnregistreParInput = {
   montant?: Prisma.FloatFieldUpdateOperationsInput | number
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   boutiqueId?: Prisma.StringFieldUpdateOperationsInput | string
+  nomEnregistrePar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  roleEnregistrePar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateVente?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   dateCreation?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -633,6 +695,8 @@ export type VenteCreateManyBoutiqueInput = {
   montant: number
   description?: string | null
   enregistreParId: string
+  nomEnregistrePar?: string | null
+  roleEnregistrePar?: string | null
   dateVente?: Date | string
   dateCreation?: Date | string
 }
@@ -641,6 +705,8 @@ export type VenteUpdateWithoutBoutiqueInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   montant?: Prisma.FloatFieldUpdateOperationsInput | number
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nomEnregistrePar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  roleEnregistrePar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateVente?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   dateCreation?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   enregistrePar?: Prisma.UtilisateurUpdateOneRequiredWithoutVentesNestedInput
@@ -651,6 +717,8 @@ export type VenteUncheckedUpdateWithoutBoutiqueInput = {
   montant?: Prisma.FloatFieldUpdateOperationsInput | number
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enregistreParId?: Prisma.StringFieldUpdateOperationsInput | string
+  nomEnregistrePar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  roleEnregistrePar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateVente?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   dateCreation?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -660,6 +728,8 @@ export type VenteUncheckedUpdateManyWithoutBoutiqueInput = {
   montant?: Prisma.FloatFieldUpdateOperationsInput | number
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enregistreParId?: Prisma.StringFieldUpdateOperationsInput | string
+  nomEnregistrePar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  roleEnregistrePar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateVente?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   dateCreation?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -672,6 +742,8 @@ export type VenteSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   description?: boolean
   boutiqueId?: boolean
   enregistreParId?: boolean
+  nomEnregistrePar?: boolean
+  roleEnregistrePar?: boolean
   dateVente?: boolean
   dateCreation?: boolean
   boutique?: boolean | Prisma.BoutiqueDefaultArgs<ExtArgs>
@@ -684,6 +756,8 @@ export type VenteSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   description?: boolean
   boutiqueId?: boolean
   enregistreParId?: boolean
+  nomEnregistrePar?: boolean
+  roleEnregistrePar?: boolean
   dateVente?: boolean
   dateCreation?: boolean
   boutique?: boolean | Prisma.BoutiqueDefaultArgs<ExtArgs>
@@ -696,6 +770,8 @@ export type VenteSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   description?: boolean
   boutiqueId?: boolean
   enregistreParId?: boolean
+  nomEnregistrePar?: boolean
+  roleEnregistrePar?: boolean
   dateVente?: boolean
   dateCreation?: boolean
   boutique?: boolean | Prisma.BoutiqueDefaultArgs<ExtArgs>
@@ -708,11 +784,13 @@ export type VenteSelectScalar = {
   description?: boolean
   boutiqueId?: boolean
   enregistreParId?: boolean
+  nomEnregistrePar?: boolean
+  roleEnregistrePar?: boolean
   dateVente?: boolean
   dateCreation?: boolean
 }
 
-export type VenteOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "montant" | "description" | "boutiqueId" | "enregistreParId" | "dateVente" | "dateCreation", ExtArgs["result"]["vente"]>
+export type VenteOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "montant" | "description" | "boutiqueId" | "enregistreParId" | "nomEnregistrePar" | "roleEnregistrePar" | "dateVente" | "dateCreation", ExtArgs["result"]["vente"]>
 export type VenteInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   boutique?: boolean | Prisma.BoutiqueDefaultArgs<ExtArgs>
   enregistrePar?: boolean | Prisma.UtilisateurDefaultArgs<ExtArgs>
@@ -738,6 +816,8 @@ export type $VentePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     description: string | null
     boutiqueId: string
     enregistreParId: string
+    nomEnregistrePar: string | null
+    roleEnregistrePar: string | null
     dateVente: Date
     dateCreation: Date
   }, ExtArgs["result"]["vente"]>
@@ -1170,6 +1250,8 @@ export interface VenteFieldRefs {
   readonly description: Prisma.FieldRef<"Vente", 'String'>
   readonly boutiqueId: Prisma.FieldRef<"Vente", 'String'>
   readonly enregistreParId: Prisma.FieldRef<"Vente", 'String'>
+  readonly nomEnregistrePar: Prisma.FieldRef<"Vente", 'String'>
+  readonly roleEnregistrePar: Prisma.FieldRef<"Vente", 'String'>
   readonly dateVente: Prisma.FieldRef<"Vente", 'DateTime'>
   readonly dateCreation: Prisma.FieldRef<"Vente", 'DateTime'>
 }

@@ -3,7 +3,8 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Download, Loader2, FileText } from "lucide-react"
+import { Loader2, FileText } from "lucide-react"
+import { getNomAuteurVente } from "@/lib/utils"
 import { toast } from "sonner"
 
 type Vente = {
@@ -11,10 +12,12 @@ type Vente = {
     montant: number
     description: string | null
     dateVente: Date | string
-    enregistrePar: {
+    nomEnregistrePar?: string | null
+    roleEnregistrePar?: string | null
+    enregistrePar?: {
         nom: string
         prenom?: string | null
-    }
+    } | null
 }
 
 type Transaction = {
@@ -186,7 +189,7 @@ export function ExportPDFVentes({
                     type: "Vente",
                     description: v.description || "-",
                     ref: "-",
-                    encaisseur: `${v.enregistrePar.prenom || ""} ${v.enregistrePar.nom}`.trim() || "—",
+                    encaisseur: getNomAuteurVente(v),
                     montant: v.montant,
                     signe: "+",
                 })),

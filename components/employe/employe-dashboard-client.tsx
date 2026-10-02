@@ -15,7 +15,7 @@ import {
 import Link from "next/link"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
-import { formatMontant } from "@/lib/utils"
+import { formatMontant, getNomAuteurVente } from "@/lib/utils"
 
 interface DashboardData {
   employe: {
@@ -29,7 +29,9 @@ interface DashboardData {
     montant: number
     description: string | null
     dateVente: string
-    enregistrePar: { nom: string; prenom: string } | null
+    nomEnregistrePar?: string | null
+    roleEnregistrePar?: string | null
+    enregistrePar?: { nom: string; prenom: string } | null
   }>
   ventesMoisTotal: number
 }
@@ -213,9 +215,7 @@ export function EmployeDashboardClient() {
     if (!recherche) return true
     const term = recherche.toLowerCase()
     const descMatch = (vente.description || "").toLowerCase().includes(term)
-    const auteurMatch = vente.enregistrePar
-      ? `${vente.enregistrePar.prenom} ${vente.enregistrePar.nom}`.toLowerCase().includes(term)
-      : false
+    const auteurMatch = getNomAuteurVente(vente).toLowerCase().includes(term)
     const montantMatch = vente.montant.toString().includes(term)
     return descMatch || auteurMatch || montantMatch
   })
@@ -372,9 +372,7 @@ export function EmployeDashboardClient() {
                         <p className="font-medium text-sm">{vente.description || "Vente"}</p>
                         <p className="text-xs text-gray-500">
                           {formatVenteDate(vente.dateVente, periode)}
-                          {vente.enregistrePar && (
-                            <> • par {vente.enregistrePar.prenom} {vente.enregistrePar.nom}</>
-                          )}
+                          {" "}• par {getNomAuteurVente(vente)}
                         </p>
                       </div>
                       <Badge variant="default">{formatMontant(vente.montant)}</Badge>

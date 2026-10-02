@@ -68,8 +68,8 @@ async function buildLocalStats(boutiqueId: string, periode: string): Promise<Rap
         dateVente: v.dateVente,
         boutiqueId: v.boutiqueId,
         boutiqueNom: boutique?.nom || "Boutique",
-        enregistreParNom: v.enregistrePar?.nom || "Employé",
-        enregistreParPrenom: v.enregistrePar?.prenom || "",
+        enregistreParNom: (v as any).nomEnregistrePar || v.enregistrePar?.nom || "—",
+        enregistreParPrenom: (v as any).roleEnregistrePar === "EMPLOYE" ? "(Employé)" : (v.enregistrePar?.prenom || ""),
       }))
     )
   }

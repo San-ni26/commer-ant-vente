@@ -945,6 +945,8 @@ export const VenteScalarFieldEnum = {
   description: 'description',
   boutiqueId: 'boutiqueId',
   enregistreParId: 'enregistreParId',
+  nomEnregistrePar: 'nomEnregistrePar',
+  roleEnregistrePar: 'roleEnregistrePar',
   dateVente: 'dateVente',
   dateCreation: 'dateCreation'
 } as const

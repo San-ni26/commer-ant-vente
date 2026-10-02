@@ -75,8 +75,8 @@ function getStatsFromSession(): Stats | null {
     const raw = sessionStorage.getItem(STATS_CACHE_KEY)
     if (!raw) return null
     const { data, ts } = JSON.parse(raw)
-    // Cache valable 5 minutes
-    if (Date.now() - ts > 5 * 60 * 1000) return null
+    // Cache valable 1 minute seulement
+    if (Date.now() - ts > 60 * 1000) return null
     return data
   } catch { return null }
 }
@@ -86,7 +86,6 @@ export function DashboardCommercantClient() {
   const [chargement, setChargement] = useState(true)
 
   const charger = useCallback(async () => {
-    setChargement(true)
     try {
       const { data } = await fetchAvecCache<Stats>(
         "/api/dashboard/stats",
@@ -94,6 +93,8 @@ export function DashboardCommercantClient() {
         saveStatsLocal
       )
       setStats(data)
+      // Mettre à jour le sessionStorage avec les données fraîches
+      saveStatsLocal(data)
     } catch {
       const local = await getStatsLocal()
       setStats(local)
@@ -103,13 +104,16 @@ export function DashboardCommercantClient() {
   }, [])
 
   useEffect(() => {
+    // 1. Afficher immédiatement le cache sessionStorage (réponse instantanée)
     const cached = getStatsFromSession()
     if (cached) {
       setStats(cached)
       setChargement(false)
-    } else {
-      charger()
     }
+
+    // 2. Recharger depuis l'API EN PARALLÈLE — met à jour les données fraîches
+    // Même si on a du cache, on recharge toujours pour avoir les données à jour
+    charger()
   }, [charger])
 
   // Recharger à la reconnexion
@@ -117,6 +121,17 @@ export function DashboardCommercantClient() {
     const handleOnline = () => charger()
     window.addEventListener("online", handleOnline)
     return () => window.removeEventListener("online", handleOnline)
+  }, [charger])
+
+  // Recharger quand la page redevient visible (retour depuis une autre page)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        charger()
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibility)
+    return () => document.removeEventListener("visibilitychange", handleVisibility)
   }, [charger])
 
   if (chargement && !stats) {

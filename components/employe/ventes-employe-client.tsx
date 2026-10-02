@@ -11,7 +11,7 @@ import { FormulaireVenteEmploye } from "@/components/employes/formulaire-vente-e
 import { Calendar, ShoppingCart, DollarSign, Store, Loader2, WifiOff } from "lucide-react"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
-import { formatMontant } from "@/lib/utils"
+import { formatMontant, getNomAuteurVente } from "@/lib/utils"
 
 interface DashboardData {
   employe: {
@@ -21,7 +21,9 @@ interface DashboardData {
   ventesDuJour: Array<{
     id: string; montant: number; description: string | null
     dateVente: string
-    enregistrePar: { nom: string; prenom: string } | null
+    nomEnregistrePar?: string | null
+    roleEnregistrePar?: string | null
+    enregistrePar?: { nom: string; prenom: string } | null
   }>
   ventesMoisTotal: number
 }
@@ -131,7 +133,7 @@ export function VentesEmployeClient() {
                     <p className="font-medium text-sm">{vente.description || "Vente"}</p>
                     <p className="text-xs text-gray-500">
                       {format(new Date(vente.dateVente), "HH:mm", { locale: fr })}
-                      {vente.enregistrePar && <> • par {vente.enregistrePar.prenom} {vente.enregistrePar.nom}</>}
+                      {" "}• par {getNomAuteurVente(vente)}
                     </p>
                   </div>
                   <Badge variant="default">{formatMontant(vente.montant)}</Badge>

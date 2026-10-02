@@ -10,7 +10,7 @@ import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
-import { formatMontant } from "@/lib/utils"
+import { formatMontant, getNomAuteurVente } from "@/lib/utils"
 import { ajouterActionHorsLigne } from "@/lib/offline/queue"
 import { useOnlineStatus } from "@/hooks/use-online-status"
 
@@ -20,10 +20,12 @@ type Vente = {
     montant: number
     description: string | null
     dateVente: Date | string
-    enregistrePar: {
+    nomEnregistrePar?: string | null
+    roleEnregistrePar?: string | null
+    enregistrePar?: {
         nom: string
         prenom?: string | null
-    }
+    } | null
 }
 
 interface ListeVentesProps {
@@ -39,7 +41,7 @@ export function ListeVentes({ ventes, boutiqueId }: ListeVentesProps) {
 
     const ventesFiltrees = ventes.filter(vente =>
         vente.description?.toLowerCase().includes(recherche.toLowerCase()) ||
-        vente.enregistrePar.nom.toLowerCase().includes(recherche.toLowerCase()) ||
+        getNomAuteurVente(vente).toLowerCase().includes(recherche.toLowerCase()) ||
         vente.montant.toString().includes(recherche)
     )
 
@@ -152,7 +154,7 @@ export function ListeVentes({ ventes, boutiqueId }: ListeVentesProps) {
                                     <td className="py-3 text-sm">
                                         <div className="flex items-center gap-2">
                                             <User className="h-3.5 w-3.5 text-gray-400 hidden lg:block" />
-                                            <span>{vente.enregistrePar.prenom || ""} {vente.enregistrePar.nom}</span>
+                                            <span>{getNomAuteurVente(vente)}</span>
                                         </div>
                                     </td>
                                     <td className="py-3 text-sm text-right">
@@ -200,7 +202,7 @@ export function ListeVentes({ ventes, boutiqueId }: ListeVentesProps) {
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2 text-xs text-gray-500">
                                     <User className="h-3.5 w-3.5" />
-                                    <span>{vente.enregistrePar.prenom || ""} {vente.enregistrePar.nom}</span>
+                                    <span>{getNomAuteurVente(vente)}</span>
                                 </div>
                                 <Button
                                     variant="ghost"

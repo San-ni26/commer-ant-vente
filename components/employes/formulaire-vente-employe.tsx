@@ -131,7 +131,7 @@ export function FormulaireVenteEmploye({
             <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Montants rapides */}
-                    <div>
+                  {/*    <div>
                         <Label className="text-sm text-gray-500 mb-3 block">
                             <Zap className="h-4 w-4 inline mr-1" />
                             Montants rapides (FCFA)
@@ -150,7 +150,7 @@ export function FormulaireVenteEmploye({
                                 </Button>
                             ))}
                         </div>
-                    </div>
+                    </div> */}
 
                     {/* Montant personnalisé */}
                     <div>
@@ -172,6 +172,7 @@ export function FormulaireVenteEmploye({
                             />
                         </div>
                         {/* Boutons + / - */}
+                         {/* 
                         <div className="flex gap-2 mt-2">
                             <Button type="button" variant="outline" size="sm" onClick={() => ajouterMontant(-500)}>
                                 <Minus className="h-3 w-3 mr-1" />500
@@ -185,12 +186,12 @@ export function FormulaireVenteEmploye({
                             <Button type="button" variant="outline" size="sm" onClick={() => ajouterMontant(5000)}>
                                 <Plus className="h-3 w-3 mr-1" />5000
                             </Button>
-                        </div>
-                    </div>
+                        </div> */}
+                    </div> 
 
                     {/* Description */}
                     <div>
-                        <Label htmlFor="description">Description (optionnel)</Label>
+                        <Label htmlFor="description">Description</Label>
                         <Textarea
                             id="description"
                             value={donnees.description}

@@ -38,17 +38,21 @@ export async function GET(
           }
         })
       },
-      include: {
+      select: {
+        id: true,
+        montant: true,
+        description: true,
+        boutiqueId: true,
+        enregistreParId: true,
+        nomEnregistrePar: true,
+        roleEnregistrePar: true,
+        dateVente: true,
+        dateCreation: true,
         enregistrePar: {
-          select: {
-            nom: true,
-            prenom: true,
-          }
+          select: { nom: true, prenom: true }
         }
       },
-      orderBy: {
-        dateVente: 'desc'
-      }
+      orderBy: { dateVente: 'desc' }
     })
 
     return NextResponse.json(ventes)
@@ -108,9 +112,13 @@ export async function POST(
       )
     }
 
-    // Si l'utilisateur est un employé, enregistrer la vente au nom du commerçant
-    const enregistreParId = (session.user as any).role === "EMPLOYE" 
-      ? boutique.commercantId 
+    // enregistreParId doit référencer un Utilisateur (FK contrainte)
+    // Un employé n'est pas dans Utilisateur → on utilise le commercantId comme FK
+    // mais on stocke le vrai nom dans nomEnregistrePar + le rôle dans roleEnregistrePar
+    const role = (session.user as any).role as string
+    const nomEnregistrePar = session.user.name || ""
+    const enregistreParId = role === "EMPLOYE"
+      ? boutique.commercantId
       : session.user.id
 
     const [vente] = await prisma.$transaction([
@@ -119,8 +127,10 @@ export async function POST(
           montant: donneesValidees.montant,
           description: donneesValidees.description,
           boutiqueId: id,
-          enregistreParId: enregistreParId,
-          dateVente: donneesValidees.dateVente 
+          enregistreParId,
+          nomEnregistrePar,           // Nom réel : employé OU commerçant
+          roleEnregistrePar: role,    // "EMPLOYE" ou "COMMERCANT"
+          dateVente: donneesValidees.dateVente
             ? new Date(donneesValidees.dateVente)
             : new Date(),
         },

@@ -20,7 +20,7 @@ import {
   Loader2,
   FileText
 } from "lucide-react"
-import { formatMontant } from "@/lib/utils"
+import { formatMontant, getNomAuteurVente } from "@/lib/utils"
 
 interface RapportsClientProps {
   boutiques: Array<{ id: string; nom: string }>
@@ -43,7 +43,9 @@ interface RapportsClientProps {
       description: string | null
       dateVente: string
       boutique: { nom: string }
-      enregistrePar: { nom: string; prenom: string | null }
+      nomEnregistrePar?: string | null
+      roleEnregistrePar?: string | null
+      enregistrePar?: { nom: string; prenom: string | null } | null
     }>
   }
 }
@@ -463,7 +465,7 @@ export function RapportsCommercantClient({ boutiques, filtres, stats }: Rapports
                           </TableCell>
                           <TableCell className="py-3 font-medium text-xs sm:text-sm">{vente.boutique.nom}</TableCell>
                           <TableCell className="py-3 text-xs sm:text-sm">
-                            {vente.enregistrePar.prenom || ""} {vente.enregistrePar.nom}
+                            {getNomAuteurVente(vente)}
                           </TableCell>
                           <TableCell className="py-3 text-gray-500 max-w-[120px] truncate text-xs sm:text-sm">
                             {vente.description || "—"}
