@@ -23,6 +23,17 @@ export async function GET(
           OR: [
             { commercantId: session.user.id },
             { gerantId: session.user.id },
+            // Employé — accès à sa boutique assignée
+            {
+              employes: {
+                some: {
+                  OR: [
+                    { id: session.user.id },
+                    { utilisateurId: session.user.id },
+                  ]
+                }
+              }
+            }
           ],
         },
         include: {

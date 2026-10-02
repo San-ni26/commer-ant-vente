@@ -300,23 +300,49 @@ export async function prechargerDonneesEmploye(
   }
 
   try {
-    // Étape 1 : Charger les infos de la boutique
+    // Étape 1 : Charger les infos de la boutique via la route employé
+    // (plus fiable que /details qui vérifie les droits commerçant)
     rapporterProgression(etapes[0].nom, 0)
+
+    // On essaie d'abord /details avec le fix accès employé
+    // Fallback sur /api/employe/dashboard si ça échoue
+    let boutiqueData: any = null
+
     const boutiqueReponse = await fetch(`/api/boutiques/${boutiqueId}/details`)
-    if (!boutiqueReponse.ok) throw new Error("Échec chargement boutique")
-    
-    const boutique: any = await boutiqueReponse.json()
+    if (boutiqueReponse.ok) {
+      boutiqueData = await boutiqueReponse.json()
+    } else {
+      // Fallback : récupérer depuis le dashboard employé
+      const dashReponse = await fetch(`/api/employe/dashboard`)
+      if (dashReponse.ok) {
+        const dash = await dashReponse.json()
+        boutiqueData = dash.employe?.boutique
+          ? {
+              id: dash.employe.boutique.id,
+              nom: dash.employe.boutique.nom,
+              solde: dash.employe.boutique.solde || 0,
+              gerantId: null,
+              dateCreation: new Date().toISOString(),
+              dateMiseAJour: new Date().toISOString(),
+              gerant: null,
+              _count: { ventes: 0, transactions: 0, employes: 0 },
+            }
+          : null
+      }
+    }
+
+    if (!boutiqueData) throw new Error("Boutique non trouvée")
     
     await saveBoutiquesLocales([
       {
-        id: boutique.id,
-        nom: boutique.nom,
-        solde: boutique.solde || 0,
-        gerantId: boutique.gerantId || null,
-        dateCreation: boutique.dateCreation || new Date().toISOString(),
-        dateMiseAJour: boutique.dateMiseAJour || new Date().toISOString(),
-        gerant: boutique.gerant || null,
-        _count: boutique._count || { ventes: 0, transactions: 0, employes: 0 },
+        id: boutiqueData.id,
+        nom: boutiqueData.nom,
+        solde: boutiqueData.solde || 0,
+        gerantId: boutiqueData.gerantId || null,
+        dateCreation: boutiqueData.dateCreation || new Date().toISOString(),
+        dateMiseAJour: boutiqueData.dateMiseAJour || new Date().toISOString(),
+        gerant: boutiqueData.gerant || null,
+        _count: boutiqueData._count || { ventes: 0, transactions: 0, employes: 0 },
         syncedAt: Date.now(),
       },
     ])
@@ -325,7 +351,7 @@ export async function prechargerDonneesEmploye(
 
     // Étape 2 : Charger les ventes
     rapporterProgression(etapes[1].nom, progressionTotale)
-    const ventesReponse = await fetch(`/api/boutiques/${boutiqueId}/ventes`)
+    const ventesReponse = await fetch(`/api/boutiques/${boutiqueData.id}/ventes`)
     if (ventesReponse.ok) {
       const ventes: any[] = await ventesReponse.json()
       await saveVentesLocales(
@@ -336,7 +362,7 @@ export async function prechargerDonneesEmploye(
             description: v.description || null,
             dateVente: v.dateVente,
             dateCreation: v.dateCreation || v.dateVente,
-            boutiqueId: boutiqueId,
+            boutiqueId: boutiqueData.id,
             enregistreParId: v.enregistreParId,
             enregistrePar: v.enregistrePar
               ? { nom: v.enregistrePar.nom, prenom: v.enregistrePar.prenom || "" }
@@ -351,7 +377,7 @@ export async function prechargerDonneesEmploye(
 
     // Étape 3 : Précharger les pages HTML
     rapporterProgression(etapes[2].nom, progressionTotale)
-    await prechargerPagesHTML("EMPLOYE", null, boutiqueId)
+    await prechargerPagesHTML("EMPLOYE", null, boutiqueData.id)
     progressionTotale += etapes[2].poids
     rapporterProgression(etapes[2].nom, progressionTotale)
 

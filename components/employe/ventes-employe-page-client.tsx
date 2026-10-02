@@ -412,6 +412,7 @@ export function VentesEmployePageClient() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Montants rapides */}
+            {/*
             <div>
               <Label className="text-sm text-gray-500 mb-3 block">
                 <Zap className="h-4 w-4 inline mr-1" />
@@ -432,10 +433,10 @@ export function VentesEmployePageClient() {
                 ))}
               </div>
             </div>
-
+*/}
             {/* Montant personnalisé */}
             <div>
-              <Label htmlFor="montant">Montant (FCFA) *</Label>
+              <Label htmlFor="montant">Montant (FCFA)</Label>
               <div className="relative mt-1.5">
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <Input
@@ -451,6 +452,7 @@ export function VentesEmployePageClient() {
                   autoFocus
                 />
               </div>
+               {/* 
               <div className="flex gap-2 mt-2">
                 <Button type="button" variant="outline" size="sm" onClick={() => ajouterMontant(-500)}>
                   <Minus className="h-3 w-3 mr-1" />500
@@ -465,11 +467,12 @@ export function VentesEmployePageClient() {
                   <Plus className="h-3 w-3 mr-1" />5000
                 </Button>
               </div>
+              */}
             </div>
 
             {/* Description */}
             <div>
-              <Label htmlFor="description">Description (optionnel)</Label>
+              <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
                 value={description}
