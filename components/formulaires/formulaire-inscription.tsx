@@ -37,7 +37,7 @@ export function FormulaireInscription() {
             return
         }
 
-        if (donnees.telephone.length < 10) {
+        if (donnees.telephone.length < 8) {
             toast.error("Numéro de téléphone invalide")
             return
         }
@@ -115,7 +115,7 @@ export function FormulaireInscription() {
                     id="telephone"
                     type="tel"
                     required
-                    minLength={10}
+                    minLength={8}
                     value={donnees.telephone}
                     onChange={(e) => setDonnees({ ...donnees, telephone: e.target.value })}
                     placeholder="0612345678"

@@ -8,7 +8,7 @@ const schemaInscription = z.object({
   nom: z.string().min(2),
   prenom: z.string().optional().default(""),
   email: z.string().email(),
-  telephone: z.string().min(10),
+  telephone: z.string().min(8),
   nomBoutique: z.string().min(2),
   motDePasse: z.string().min(8),
   confirmationMotDePasse: z.string().min(8),

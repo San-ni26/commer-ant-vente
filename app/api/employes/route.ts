@@ -8,7 +8,7 @@ import crypto from "crypto"
 const schemaEmploye = z.object({
     nom: z.string().min(2),
     prenom: z.string().optional(),
-    telephone: z.string().min(10),
+    telephone: z.string().min(8).max(15),
     boutiqueId: z.string().optional(),
 })
 

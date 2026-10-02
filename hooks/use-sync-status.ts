@@ -49,27 +49,19 @@ export function useSyncStatus(): SyncStatus {
     // Lecture initiale du compteur
     refreshCount()
 
-    // Écouter la fin de chaque sync — déclenché uniquement quand syncQueue() termine
+    // Écouter la fin de chaque sync uniquement — pas de polling
     const unsub = onSyncComplete(async (result) => {
       if (!mounted.current) return
       setIsSyncing(false)
-
-      // Ne mettre lastSyncAt à jour QUE si des items ont été traités
-      // Évite le toast "synchronisé" à chaque navigation
       if (result && (result.success > 0 || result.failed > 0)) {
         setLastSyncAt(Date.now())
       }
-
       setTimeout(refreshCount, 100)
     })
-
-    // Failsafe toutes les 30s — pas 10s pour ne pas saturer
-    const interval = setInterval(refreshCount, 30_000)
 
     return () => {
       mounted.current = false
       unsub()
-      clearInterval(interval)
     }
   }, [refreshCount])
 

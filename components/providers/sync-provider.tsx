@@ -101,13 +101,11 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       navigator.serviceWorker.addEventListener('message', handleSWMessage)
     }
 
-    // Écouter les fins de sync
+    // Rafraîchir le compteur uniquement sur les events sync — pas de polling
+    // Le polling crée des re-renders inutiles qui reloadent les pages
     const unsubSync = onSyncComplete(async () => {
       await refreshCount()
     })
-
-    // Rafraîchir le compteur périodiquement
-    const interval = setInterval(refreshCount, 10000)
 
     return () => {
       window.removeEventListener('online', handleOnline)
@@ -115,7 +113,6 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         navigator.serviceWorker.removeEventListener('message', handleSWMessage)
       }
       unsubSync()
-      clearInterval(interval)
     }
   }, [forceSync, refreshCount])
 

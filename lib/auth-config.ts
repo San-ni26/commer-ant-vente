@@ -92,14 +92,6 @@ export const authConfig: NextAuthConfig = {
   ],
   callbacks: {
     async jwt({ token, user, trigger }) {
-      console.log("[jwt callback]", { 
-        trigger, 
-        hasUser: !!user, 
-        tokenSub: token.sub,
-        tokenRole: token.role 
-      })
-
-      // Au login (user existe), on enrichit le token avec TOUTES les données
       if (user) {
         token.role = user.role || "EMPLOYE"
         token.id = user.id || ""
@@ -107,24 +99,10 @@ export const authConfig: NextAuthConfig = {
         token.name = user.name || ""
         token.boutiqueId = (user as any).boutiqueId || null
         token.boutiqueNom = (user as any).boutiqueNom || null
-        console.log("[jwt callback] Token enrichi avec user data:", {
-          id: token.id,
-          email: token.email,
-          role: token.role
-        })
       }
       return token
     },
     async session({ session, token }) {
-      console.log("[session callback]", { 
-        hasSession: !!session, 
-        hasToken: !!token,
-        tokenRole: token.role,
-        tokenEmail: token.email,
-        sessionUserBefore: session.user?.email
-      })
-
-      // Reconstruire session.user depuis le token (qui contient tout)
       if (token && session) {
         session.user = {
           id: token.id as string,
@@ -137,12 +115,6 @@ export const authConfig: NextAuthConfig = {
           } : {})
         } as any
       }
-
-      console.log("[session callback] Session finale:", {
-        email: session.user?.email,
-        role: (session.user as any)?.role
-      })
-
       return session
     }
   }
